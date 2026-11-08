@@ -1,4 +1,11 @@
 {
     "terminal.integrated.stickyScroll.enabled": false,
-    "cmake.sourceDirectory": "/home/jazz/Projects/STM32H750VBT6/firmware-stm32"
+    "cmake.sourceDirectory": "/home/jazz/Projects/STM32H750VBT6/firmware-stm32",
+    "cmake.cmakePath": "cube-cmake",
+    "cmake.configureArgs": [
+        "-DCMAKE_COMMAND=cube-cmake"
+    ],
+    "cmake.preferredGenerators": [
+        "Ninja"
+    ]
 }

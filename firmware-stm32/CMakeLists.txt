@@ -33,6 +33,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 # Add the HAL C source files to the build
 target_sources(${PROJECT_NAME} PRIVATE
+  Src/bsp_board.c
   Src/system_stm32h7xx.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c
@@ -49,4 +50,10 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
   COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${PROJECT_NAME}> ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.hex
   COMMAND ${CMAKE_SIZE} $<TARGET_FILE:${PROJECT_NAME}>
   COMMENT "Generating .bin, .hex, and printing memory allocation"
+)
+
+add_custom_target(flash
+  COMMAND openocd -f interface/stlink.cfg -c "reset_config none" -f target/stm32h7x.cfg -c "program ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.elf verify reset exit"
+  DEPENDS ${PROJECT_NAME}
+  COMMENT "Flashing target over OpenOCD"
 )

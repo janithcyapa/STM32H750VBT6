@@ -1,0 +1,18 @@
+{
+    "configurations": [
+        {
+            "name": "Debug",
+            "type": "stlinkgdbtarget",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "preBuild": "${command:st-stm32-ide-debug-launch.build}",
+            "runEntry": "main",
+            "imagesAndSymbols": [
+                {
+                    "imageFileName": "${workspaceFolder}/firmware-stm32/build/Debug/STM32H750VBT6.elf"
+                }
+            ],
+            "verbose": false
+        }
+    ]
+}
