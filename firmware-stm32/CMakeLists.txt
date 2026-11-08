@@ -13,7 +13,7 @@ project(STM32H750VBT6 C CXX ASM)
 set(PROJECT_NAME STM32H750VBT6)
 add_executable(${PROJECT_NAME})
 
-# Load architecture flags and sources (or specify them via modular cmake files)
+# Load architecture flags and project sources
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/flags.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/files.cmake)
 
@@ -29,6 +29,18 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   Drivers/CMSIS/Core/Include
   Drivers/CMSIS/Device/ST/STM32H7xx/Include
   Drivers/STM32H7xx_HAL_Driver/Inc
+)
+
+# Add the HAL C source files to the build
+target_sources(${PROJECT_NAME} PRIVATE
+  Src/system_stm32h7xx.c
+  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
+  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c
+  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c
+  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c
+  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c
+  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c
+  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c
 )
 
 # Post-build step to produce flashable artifacts and view memory usage
