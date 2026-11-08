@@ -38,6 +38,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 # Add the HAL C source files to the build
 target_sources(${PROJECT_NAME} PRIVATE
   Src/bsp_board.c
+  Src/bsp_qspi.c 
   Src/system_stm32h7xx.c
   # HAL Sources
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
@@ -47,6 +48,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c
+  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_qspi.c 
   # FreeRTOS Core Sources
   Middlewares/FreeRTOS-Kernel/tasks.c
   Middlewares/FreeRTOS-Kernel/queue.c

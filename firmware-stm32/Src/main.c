@@ -1,8 +1,8 @@
 #include "FreeRTOS.h"
 #include "bsp_board.h"
+#include "bsp_qspi.h"
 #include "task.h"
 
-/* SysTick interrupt handler: feeds both HAL and FreeRTOS */
 extern void xPortSysTickHandler(void);
 void SysTick_Handler(void) {
   HAL_IncTick();
@@ -11,7 +11,6 @@ void SysTick_Handler(void) {
   }
 }
 
-/* --- Task 1: Blinks LED D2 (PA1) every 500ms --- */
 static void Task_Blink(void *pvParameters) {
   (void)pvParameters;
   while (1) {
@@ -20,41 +19,39 @@ static void Task_Blink(void *pvParameters) {
   }
 }
 
-/* --- Task 2: Monitors User Button K1 (PE3) in parallel --- */
-static void Task_Button(void *pvParameters) {
-  (void)pvParameters;
-  while (1) {
-    if (BSP_Button_K1_Read()) {
-      BSP_LED_On();
-    }
-    vTaskDelay(pdMS_TO_TICKS(20));
-  }
-}
-
 int main(void) {
-
-  // 1. Initialize HAL and Hardware
   HAL_Init();
   BSP_LED_Init();
-  BSP_Buttons_Init();
 
-  // 2. Set NVIC Priority Grouping to 4 bits (Required by FreeRTOS Cortex-M
-  // port)
+  // 1. Initialize External QSPI Flash
+  BSP_QSPI_Init();
+
+  // 2. Read JEDEC ID from the W25Q64JV chip
+  uint32_t flash_id = BSP_QSPI_ReadID();
+
+  // 3. Verify the ID
+  if (flash_id == W25Q64JV_EXPECTED_ID) // 0xEF4017
+  {
+    // Success: 3 Fast Blinks to confirm External Flash works!
+    for (int i = 0; i < 3; i++) {
+      BSP_LED_On();
+      HAL_Delay(100);
+      BSP_LED_Off();
+      HAL_Delay(100);
+    }
+
+    // Put Flash into Memory-Mapped Mode (Available at 0x90000000)
+    BSP_QSPI_EnableMemoryMappedMode();
+  } else {
+    // Error: Keep LED solid ON
+    BSP_LED_On();
+    while (1) {
+    }
+  }
+
+  // Start FreeRTOS
   HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
-
-  // 3. Create Task 1 (Blink)
-  xTaskCreate(Task_Blink,  /* Task function */
-              "BlinkTask", /* Name for debugging */
-              256,         /* Stack size in words (1024 bytes) */
-              NULL,        /* Parameter passed to task */
-              2,   /* Priority (1 = low, higher numbers = higher priority) */
-              NULL /* Task handle */
-  );
-
-  // 4. Create Task 2 (Button Monitor)
-  xTaskCreate(Task_Button, "ButtonTask", 256, NULL, 1, NULL);
-
-  // 5. Start the FreeRTOS Scheduler (never returns!)
+  xTaskCreate(Task_Blink, "BlinkTask", 256, NULL, 2, NULL);
   vTaskStartScheduler();
 
   while (1) {
