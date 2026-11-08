@@ -25,69 +25,69 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 
 # Modern target-scoped includes
 target_include_directories(${PROJECT_NAME} PRIVATE
-  Inc
-  Inc/core
-  Inc/bsp
-  Inc/sensors
-  Inc/usb
+  ${CMAKE_CURRENT_SOURCE_DIR}/Inc
+  ${CMAKE_CURRENT_SOURCE_DIR}/Inc/core
+  ${CMAKE_CURRENT_SOURCE_DIR}/Inc/bsp
+  ${CMAKE_CURRENT_SOURCE_DIR}/Inc/sensors
+  ${CMAKE_CURRENT_SOURCE_DIR}/Inc/usb
   # HAL Includes
-  Drivers/CMSIS/Core/Include
-  Drivers/CMSIS/Device/ST/STM32H7xx/Include
-  Drivers/STM32H7xx_HAL_Driver/Inc
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/CMSIS/Core/Include
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32H7xx/Include
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Inc
   # FreeRTOS Includes
-  Middlewares/FreeRTOS-Kernel/include
-  Middlewares/FreeRTOS-Kernel/portable/GCC/ARM_CM7/r0p1
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/FreeRTOS-Kernel/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/FreeRTOS-Kernel/portable/GCC/ARM_CM7/r0p1
   # USB Middleware Includes
-  Middlewares/ST/STM32_USB_Device_Library/Core/Inc
-  Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
 )
 
 # Add the HAL C source files to the build
 target_sources(${PROJECT_NAME} PRIVATE
-  Src/core/system_stm32h7xx.c
-  Src/bsp/bsp_board.c
-  Src/bsp/bsp_qspi.c
-  Src/sensors/bmi160.c
-  Src/sensors/i2c_bus.c
-  Src/sensors/bmp280.c
-  Src/sensors/qmc5883l.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Src/core/system_stm32h7xx.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Src/bsp/bsp_board.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Src/bsp/bsp_qspi.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Src/sensors/bmi160.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Src/sensors/i2c_bus.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Src/sensors/bmp280.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Src/sensors/qmc5883l.c
   # HAL Sources
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_qspi.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi_ex.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c_ex.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc_ex.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_qspi.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi_ex.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c_ex.c
   # FreeRTOS Core Sources
-  Middlewares/FreeRTOS-Kernel/tasks.c
-  Middlewares/FreeRTOS-Kernel/queue.c
-  Middlewares/FreeRTOS-Kernel/list.c
-  Middlewares/FreeRTOS-Kernel/timers.c
-  Middlewares/FreeRTOS-Kernel/event_groups.c
-  Middlewares/FreeRTOS-Kernel/stream_buffer.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/FreeRTOS-Kernel/tasks.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/FreeRTOS-Kernel/queue.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/FreeRTOS-Kernel/list.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/FreeRTOS-Kernel/timers.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/FreeRTOS-Kernel/event_groups.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/FreeRTOS-Kernel/stream_buffer.c
   # FreeRTOS Memory Manager (heap_4) & Cortex-M7 Port
-  Middlewares/FreeRTOS-Kernel/portable/MemMang/heap_4.c
-  Middlewares/FreeRTOS-Kernel/portable/GCC/ARM_CM7/r0p1/port.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/FreeRTOS-Kernel/portable/MemMang/heap_4.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/FreeRTOS-Kernel/portable/GCC/ARM_CM7/r0p1/port.c
   # USB App Sources
-  Src/usb/usb_device.c
-  Src/usb/usbd_conf.c
-  Src/usb/usbd_desc.c
-  Src/usb/usbd_cdc_if.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Src/usb/usb_device.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Src/usb/usbd_conf.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Src/usb/usbd_desc.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Src/usb/usbd_cdc_if.c
   # ST HAL USB & PCD Drivers
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd_ex.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_ll_usb.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd_ex.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_ll_usb.c
   # ST USB Middleware Core & CDC
-  Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c
-  Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c
-  Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c
-  Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE m)
