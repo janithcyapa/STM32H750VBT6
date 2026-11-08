@@ -26,15 +26,20 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 # Modern target-scoped includes
 target_include_directories(${PROJECT_NAME} PRIVATE
   Inc
+  # HAL Includes
   Drivers/CMSIS/Core/Include
   Drivers/CMSIS/Device/ST/STM32H7xx/Include
   Drivers/STM32H7xx_HAL_Driver/Inc
+  # FreeRTOS Includes
+  Middlewares/FreeRTOS-Kernel/include
+  Middlewares/FreeRTOS-Kernel/portable/GCC/ARM_CM7/r0p1
 )
 
 # Add the HAL C source files to the build
 target_sources(${PROJECT_NAME} PRIVATE
   Src/bsp_board.c
   Src/system_stm32h7xx.c
+  # HAL Sources
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_rcc.c
@@ -42,6 +47,16 @@ target_sources(${PROJECT_NAME} PRIVATE
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c
+  # FreeRTOS Core Sources
+  Middlewares/FreeRTOS-Kernel/tasks.c
+  Middlewares/FreeRTOS-Kernel/queue.c
+  Middlewares/FreeRTOS-Kernel/list.c
+  Middlewares/FreeRTOS-Kernel/timers.c
+  Middlewares/FreeRTOS-Kernel/event_groups.c
+  Middlewares/FreeRTOS-Kernel/stream_buffer.c
+  # FreeRTOS Memory Manager (heap_4) & Cortex-M7 Port
+  Middlewares/FreeRTOS-Kernel/portable/MemMang/heap_4.c
+  Middlewares/FreeRTOS-Kernel/portable/GCC/ARM_CM7/r0p1/port.c
 )
 
 # Post-build step to produce flashable artifacts and view memory usage
