@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevEBox STM32H750VBT6 Pinout &amp; Peripheral Explorer</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #111827;
+      --card-border: #1f2937;
+      --text: #f9fafb;
+      --muted: #9ca3af;
+      --dim: #6b7280;
+      --pwr: #ef4444;
+      --gnd: #374151;
+      --ft5: #15803d;
+      --ft3: #b45309;
+      --onboard: #e11d48;
+      --pwm: #ea580c;
+      --adc: #059669;
+      --dac: #10b981;
+      --uart: #0891b2;
+      --spi: #2563eb;
+      --i2c: #7c3aed;
+      --can: #d97706;
+      --high: #4f46e5;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 24px;
+    }
+    .header {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+    .header h1 { font-size: 24px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+    .header p { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+    
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-top: 12px;
+    }
+    .search-box {
+      flex: 1;
+      min-width: 260px;
+      padding: 10px 14px;
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+    }
+    .search-box:focus { border-color: #38bdf8; }
+    
+    .filter-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .pill {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      user-select: none;
+      transition: all 0.15s ease;
+      background: #1f2937;
+      color: var(--muted);
+    }
+    .pill:hover { background: #374151; color: #fff; }
+    .pill.active { background: #0284c7; color: #fff; border-color: #38bdf8; }
+    
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 8px;
+    }
+    .tab-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .tab-btn.active { background: #1e293b; color: #38bdf8; }
+    
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 14px;
+    }
+    .pin-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 14px;
+      transition: transform 0.1s, border-color 0.15s;
+      cursor: pointer;
+    }
+    .pin-card:hover { border-color: #38bdf8; transform: translateY(-2px); }
+    .pin-card.highlight { border-color: #f59e0b; box-shadow: 0 0 12px rgba(245, 158, 11, 0.3); }
+    .pin-card.hidden { display: none; }
+    
+    .pin-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .pin-id {
+      font-family: monospace;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .pin-num {
+      font-size: 11px;
+      background: #1e293b;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--muted);
+      font-family: monospace;
+    }
+    .voltage-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .ft-5v { background: #15803d; color: #fff; }
+    .ft-3v { background: #b45309; color: #fff; }
+    
+    .badge-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 8px;
+    }
+    .tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 7px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+    .tag-onboard { background: var(--onboard); color: #fff; }
+    .tag-pwm { background: var(--pwm); color: #fff; }
+    .tag-adc { background: var(--adc); color: #fff; }
+    .tag-dac { background: var(--dac); color: #fff; }
+    .tag-uart { background: var(--uart); color: #fff; }
+    .tag-spi { background: var(--spi); color: #fff; }
+    .tag-i2c { background: var(--i2c); color: #fff; }
+    .tag-can { background: var(--can); color: #fff; }
+    .tag-high { background: var(--high); color: #fff; }
+    .tag-pwr { background: var(--pwr); color: #fff; }
+    .tag-gnd { background: var(--gnd); color: #9ca3af; }
+    
+    /* Modal Detail View */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 650px;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+    .modal-close {
+      float: right;
+      font-size: 20px;
+      color: var(--muted);
+      cursor: pointer;
+      line-height: 1;
+    }
+    .modal-close:hover { color: #fff; }
+    table.af-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 12px;
+    }
+    table.af-table th, table.af-table td {
+      padding: 6px 10px;
+      text-align: left;
+      border: 1px solid #374151;
+    }
+    table.af-table th { background: #1e293b; color: #38bdf8; }
+    table.af-table tr:nth-child(even) { background: #161e2e; }
+    pre.code-block {
+      background: #0f172a;
+      border: 1px solid #334155;
+      padding: 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #38bdf8;
+      overflow-x: auto;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>DevEBox STM32H750VBT6 (STM32H7XX-M) Pinout Explorer</h1>
+    <p>Comprehensive interactive capability and alternate function mapping for Expansion Headers J2 &amp; J3, TFT LCD Header J4, and SWD Header J1.</p>
+    
+    <div class="toolbar">
+      <input type="text" id="searchInput" class="search-box" placeholder="Search pin, function, timer (e.g. TIM1, USART1, SPI2, ADC, PA1)...">
+      <div class="filter-pills">
+        <span class="pill active" data-filter="all">All Pins</span>
+        <span class="pill" data-filter="pwm">PWM / Timers</span>
+        <span class="pill" data-filter="adc">ADC Analog</span>
+        <span class="pill" data-filter="dac">DAC</span>
+        <span class="pill" data-filter="uart">UART</span>
+        <span class="pill" data-filter="spi">SPI / I2S</span>
+        <span class="pill" data-filter="i2c">I2C</span>
+        <span class="pill" data-filter="can">CAN / FDCAN</span>
+        <span class="pill" data-filter="onboard">Onboard Wired</span>
+        <span class="pill" data-filter="pwr">Power &amp; GND</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="j3">J3 Header (Left, 44 Pins)</button>
+    <button class="tab-btn" data-tab="j2">J2 Header (Right, 44 Pins)</button>
+    <button class="tab-btn" data-tab="j4">J4 TFT LCD Header (8 Pins)</button>
+    <button class="tab-btn" data-tab="j1">J1 SWD Header (5 Pins)</button>
+    <button class="tab-btn" data-tab="diagram">Full Graphical Diagram</button>
+  </div>
+
+  <!-- J3 Container -->
+  <div id="j3-grid" class="grid-container"></div>
+
+  <!-- J2 Container -->
+  <div id="j2-grid" class="grid-container" style="display:none;"></div>
+
+  <!-- J4 Container -->
+  <div id="j4-grid" class="grid-container" style="display:none;"></div>
+
+  <!-- J1 Container -->
+  <div id="j1-grid" class="grid-container" style="display:none;"></div>
+
+  <!-- Diagram Tab Container -->
+  <div id="diagram-view" style="display:none; text-align:center; background:#111827; padding:20px; border-radius:12px;">
+    <p style="margin-bottom:12px; color:#9ca3af;">High-Resolution SVG Vector Pinout Diagram (Click to download or view full size)</p>
+    <a href="pinout-diagram.svg" target="_blank" style="color:#38bdf8; text-decoration:none; font-weight:700; margin-right:16px;">Open Vector SVG Diagram ↗</a>
+    <a href="pinout-diagram.png" target="_blank" style="color:#10b981; text-decoration:none; font-weight:700;">Open High-Res PNG (7292x5730) ↗</a>
+    <div style="margin-top:20px; overflow:auto; max-height:800px; border:1px solid #374151; border-radius:8px;">
+      <img src="pinout-diagram.svg" style="max-width:100%; height:auto;" alt="DevEBox STM32H750VBT6 Pinout Diagram">
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="pinModal" class="modal-overlay">
+    <div class="modal">
+      <span class="modal-close" onclick="closeModal()">&times;</span>
+      <h2 id="modalPinTitle" style="color:#fff; font-size:20px; margin-bottom:4px;">Pin Details</h2>
+      <p id="modalPinSubtitle" style="color:var(--muted); font-size:13px; margin-bottom:14px;"></p>
+      
+      <div id="modalBadges" class="badge-container" style="margin-bottom:16px;"></div>
+      
+      <h3 style="font-size:14px; color:#38bdf8; margin-top:14px;">Alternate Function Matrix (AF0 - AF15)</h3>
+      <table class="af-table">
+        <thead>
+          <tr><th>AF#</th><th>Mapped Peripheral Signal</th></tr>
+        </thead>
+        <tbody id="modalAfBody"></tbody>
+      </table>
+
+      <h3 style="font-size:14px; color:#38bdf8; margin-top:16px;">C / C++ HAL Macro Definition</h3>
+      <pre id="modalCodeSnippet" class="code-block"></pre>
+    </div>
+  </div>
+
+  <script>
+    const db = {"J3_LEFT_HEADER": [{"header_pin": 1, "pin_name": "3V3", "details": {"pin": "3V3", "lqfp100": "-", "ft": "N/A", "type": "POWER", "onboard": "Power Rail", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 2, "pin_name": "3V3", "details": {"pin": "3V3", "lqfp100": "-", "ft": "N/A", "type": "POWER", "onboard": "Power Rail", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 3, "pin_name": "GND", "details": {"pin": "GND", "lqfp100": "-", "ft": "N/A", "type": "GND", "onboard": "Ground Plane", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 4, "pin_name": "GND", "details": {"pin": "GND", "lqfp100": "-", "ft": "N/A", "type": "GND", "onboard": "Ground Plane", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 5, "pin_name": "VDDA", "details": {"pin": "VDDA", "lqfp100": "-", "ft": "N/A", "type": "POWER", "onboard": "Power Rail", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 6, "pin_name": "VREF+", "details": {"pin": "VREF+", "lqfp100": "-", "ft": "N/A", "type": "POWER", "onboard": "Power Rail", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 7, "pin_name": "PB15", "details": {"pin": "PB15", "lqfp100": "54", "ft": "5V", "type": "I/O", "structure": "FT u", "onboard": "TFT LCD J4-3 (SPI2_MOSI)", "pwm": ["TIM1 CH3N (AF1)", "TIM12 CH2 (AF2)", "TIM8 CH3N (AF3)"], "uart": ["USART1 RX (AF4)", "UART4 CTS (AF8)"], "spi": ["SPI2 MOSI (AF5)", "I2S2 SDO (AF5)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": ["SDMMC2 D1 (AF9)"], "dcmi": [], "usb": ["OTG HS DP (AF12)"], "eth": [], "extra": [], "all_af": {"0": "RTC REFIN", "1": "TIM1 CH3N", "2": "TIM12 CH2", "3": "TIM8 CH3N", "4": "USART1 RX", "5": "SPI2 MOSI/ I2S2 SDO", "6": "DFSDM1 CKIN2", "8": "UART4 CTS", "9": "SDMMC2 D1", "12": "OTG HS DP", "15": "EVENT- OUT"}}}, {"header_pin": 8, "pin_name": "PB14", "details": {"pin": "PB14", "lqfp100": "53", "ft": "5V", "type": "I/O", "structure": "FT u", "onboard": "TFT LCD J4-6 (SPI2_MISO)", "pwm": ["TIM1 CH2N (AF1)", "TIM12 CH1 (AF2)", "TIM8 CH2N (AF3)"], "uart": ["USART1 TX (AF4)", "USART3 RTS (AF7)", "USART3 DE (AF7)", "UART4 RTS (AF8)", "UART4 DE (AF8)"], "spi": ["SPI2 MISO (AF5)", "I2S2 SDI (AF5)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": ["SDMMC2 D0 (AF9)"], "dcmi": [], "usb": ["OTG HS DM (AF12)"], "eth": [], "extra": [], "all_af": {"1": "TIM1 CH2N", "2": "TIM12 CH1", "3": "TIM8 CH2N", "4": "USART1 TX", "5": "SPI2 MISO/ I2S2 SDI", "6": "DFSDM1 DATIN2", "7": "USART3 RTS/ USART3 DE", "8": "UART4 RTS/ UART4 DE", "9": "SDMMC2 D0", "12": "OTG HS DM", "15": "EVENT- OUT"}}}, {"header_pin": 9, "pin_name": "PB13", "details": {"pin": "PB13", "lqfp100": "52", "ft": "5V", "type": "I/O", "structure": "FT u", "onboard": "TFT LCD J4-4 (SPI2_SCK)", "pwm": ["TIM1 CH1N (AF1)", "LPTIM2 OUT (AF3)"], "uart": ["USART3 CTS (AF7)", "USART3 NSS (AF7)", "UART5 TX (AF14)"], "spi": ["SPI2 SCK (AF5)", "I2S2 CK (AF5)"], "i2c": [], "can": ["FDCAN2 TX (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG HS ULPI D6 (AF10)"], "eth": ["ETH MII TXD1 (AF11)", "ETH RMII TXD1 (AF11)"], "extra": ["OTG HS   VBUS"], "all_af": {"1": "TIM1 CH1N", "3": "LPTIM2 OUT", "5": "SPI2 SCK/ I2S2 CK", "6": "DFSDM1 CKIN1", "7": "USART3 CTS/ USART3 NSS", "9": "FDCAN2 TX", "10": "OTG HS ULPI D6", "11": "ETH MII TXD1/ETH RMII TXD1", "14": "UART5 TX", "15": "EVENT- OUT"}}}, {"header_pin": 10, "pin_name": "PB12", "details": {"pin": "PB12", "lqfp100": "51", "ft": "5V", "type": "I/O", "structure": "FT u", "onboard": "TFT LCD J4-5 (SPI2_NSS / CS)", "pwm": [], "uart": ["USART3 CK (AF7)", "UART5 RX (AF14)"], "spi": ["SPI2 NSS (AF5)", "I2S2 WS (AF5)"], "i2c": ["I2C2 SMBA (AF4)"], "can": ["FDCAN2 RX (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG HS ULPI D5 (AF10)", "OTG HS ID (AF12)"], "eth": ["ETH MII TXD0 (AF11)", "ETH RMII TXD0 (AF11)"], "extra": [], "all_af": {"1": "TIM1 BKIN", "4": "I2C2 SMBA", "5": "SPI2 NSS/ I2S2 WS", "6": "DFSDM1 DATIN1", "7": "USART3 CK", "9": "FDCAN2 RX", "10": "OTG HS ULPI D5", "11": "ETH MII TXD0/ETH RMII TXD0", "12": "OTG HS ID", "13": "TIM1 BKIN COMP12", "14": "UART5 RX", "15": "EVENT- OUT"}}}, {"header_pin": 11, "pin_name": "PB11", "details": {"pin": "PB11", "lqfp100": "47", "ft": "5V", "type": "I/O", "structure": "FT f", "onboard": "", "pwm": ["TIM2 CH4 (AF1)", "HRTIM SCIN (AF2)", "LPTIM2 ETR (AF3)"], "uart": ["USART3 RX (AF7)"], "spi": [], "i2c": ["I2C2 SDA (AF4)"], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG HS ULPI D4 (AF10)"], "eth": ["ETH MII TX EN (AF11)", "ETH RMII TX EN (AF11)"], "extra": ["LCD G5 (AF14)"], "all_af": {"1": "TIM2 CH4", "2": "HRTIM SCIN", "3": "LPTIM2 ETR", "4": "I2C2 SDA", "6": "DFSDM1 CKIN7", "7": "USART3 RX", "10": "OTG HS ULPI D4", "11": "ETH MII TX EN/ ETH RMII TX EN", "14": "LCD G5", "15": "EVENT- OUT"}}}, {"header_pin": 12, "pin_name": "PB10", "details": {"pin": "PB10", "lqfp100": "46", "ft": "5V", "type": "I/O", "structure": "FT f", "onboard": "", "pwm": ["TIM2 CH3 (AF1)", "HRTIM SCOUT (AF2)", "LPTIM2 IN 1 (AF3)"], "uart": ["USART3 TX (AF7)"], "spi": ["SPI2 SCK (AF5)", "I2S2 CK (AF5)", "QUADSPI BK1 NCS (AF9)"], "i2c": ["I2C2 SCL (AF4)"], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG HS ULPI D3 (AF10)"], "eth": ["ETH MII RX ER (AF11)"], "extra": ["QUADSPI BK1 NCS (AF9)", "LCD G4 (AF14)"], "all_af": {"1": "TIM2 CH3", "2": "HRTIM SCOUT", "3": "LPTIM2 IN 1", "4": "I2C2 SCL", "5": "SPI2 SCK/ I2S2 CK", "6": "DFSDM1 DATIN7", "7": "USART3 TX", "9": "QUADSPI BK1 NCS", "10": "OTG HS ULPI D3", "11": "ETH MII RX ER", "14": "LCD G4", "15": "EVENT- OUT"}}}, {"header_pin": 13, "pin_name": "PE15", "details": {"pin": "PE15", "lqfp100": "45", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["FMC D12 (AF12)", "FMC DA12 (AF12)", "LCD R7 (AF14)"], "all_af": {"1": "TIM1 BKIN", "12": "FMC D12/ FMC DA12", "13": "TIM1 BKIN COMP12/ COMP TIM1 BKIN", "14": "LCD R7", "15": "EVENT- OUT"}}}, {"header_pin": 14, "pin_name": "PE14", "details": {"pin": "PE14", "lqfp100": "44", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": ["TIM1 CH4 (AF1)"], "uart": [], "spi": ["SPI4 MOSI (AF5)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["FMC D11 (AF12)", "FMC DA11 (AF12)", "LCD CLK (AF14)"], "all_af": {"1": "TIM1 CH4", "5": "SPI4 MOSI", "10": "SAI2 MCLK B", "12": "FMC D11/ FMC DA11", "14": "LCD CLK", "15": "EVENT- OUT"}}}, {"header_pin": 15, "pin_name": "PE13", "details": {"pin": "PE13", "lqfp100": "43", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": ["TIM1 CH3 (AF1)"], "uart": [], "spi": ["SPI4 MISO (AF5)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["FMC D10 (AF12)", "FMC DA10 (AF12)", "LCD DE (AF14)"], "all_af": {"1": "TIM1 CH3", "3": "DFSDM1 CKIN5", "5": "SPI4 MISO", "10": "SAI2 FS B", "12": "FMC D10/ FMC DA10", "13": "COMP2 OUT", "14": "LCD DE", "15": "EVENT- OUT"}}}, {"header_pin": 16, "pin_name": "PE12", "details": {"pin": "PE12", "lqfp100": "42", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": ["TIM1 CH3N (AF1)"], "uart": [], "spi": ["SPI4 SCK (AF5)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["FMC D9 (AF12)", "FMC DA9 (AF12)", "LCD B4 (AF14)"], "all_af": {"1": "TIM1 CH3N", "3": "DFSDM1 DATIN5", "5": "SPI4 SCK", "10": "SAI2 SCK B", "12": "FMC D9/ FMC DA9", "13": "COMP1 OUT", "14": "LCD B4", "15": "EVENT- OUT"}}}, {"header_pin": 17, "pin_name": "PE11", "details": {"pin": "PE11", "lqfp100": "41", "ft": "5V", "type": "I/O", "structure": "FT ha", "onboard": "", "pwm": ["TIM1 CH2 (AF1)"], "uart": [], "spi": ["SPI4 NSS (AF5)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["COMP2 INP", "FMC D8 (AF12)", "FMC DA8 (AF12)", "LCD G3 (AF14)"], "all_af": {"1": "TIM1 CH2", "3": "DFSDM1 CKIN4", "5": "SPI4 NSS", "10": "SAI2 SD B", "12": "FMC D8/ FMC DA8", "14": "LCD G3", "15": "EVENT- OUT"}}}, {"header_pin": 18, "pin_name": "PE10", "details": {"pin": "PE10", "lqfp100": "40", "ft": "5V", "type": "I/O", "structure": "FT ha", "onboard": "", "pwm": ["TIM1 CH2N (AF1)"], "uart": ["UART7 CTS (AF7)"], "spi": ["QUADSPI BK2 IO3 (AF10)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["COMP2 INM", "QUADSPI BK2 IO3 (AF10)", "FMC D7 (AF12)", "FMC DA7 (AF12)"], "all_af": {"1": "TIM1 CH2N", "3": "DFSDM1 DATIN4", "7": "UART7 CTS", "10": "QUADSPI BK2 IO3", "12": "FMC D7/ FMC DA7", "15": "EVENT- OUT"}}}, {"header_pin": 19, "pin_name": "PE9", "details": {"pin": "PE9", "lqfp100": "39", "ft": "3.3V", "type": "I/O", "structure": "TT ha", "onboard": "", "pwm": ["TIM1 CH1 (AF1)"], "uart": ["UART7 RTS (AF7)", "UART7 DE (AF7)"], "spi": ["QUADSPI BK2 IO2 (AF10)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["OPAMP2 VINP", "COMP2 INP", "QUADSPI BK2 IO2 (AF10)", "FMC D6 (AF12)", "FMC DA6 (AF12)"], "all_af": {"1": "TIM1 CH1", "3": "DFSDM1 CKOUT", "7": "UART7 RTS/ UART7 DE", "10": "QUADSPI BK2 IO2", "12": "FMC D6/ FMC DA6", "15": "EVENT- OUT"}}}, {"header_pin": 20, "pin_name": "PE8", "details": {"pin": "PE8", "lqfp100": "38", "ft": "3.3V", "type": "I/O", "structure": "TT ha", "onboard": "", "pwm": ["TIM1 CH1N (AF1)"], "uart": ["UART7 TX (AF7)"], "spi": ["QUADSPI BK2 IO1 (AF10)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["OPAMP2  VINM", "QUADSPI BK2 IO1 (AF10)", "FMC D5 (AF12)", "FMC DA5 (AF12)"], "all_af": {"1": "TIM1 CH1N", "3": "DFSDM1 CKIN2", "7": "UART7 TX", "10": "QUADSPI BK2 IO1", "12": "FMC D5/ FMC DA5", "13": "COMP2 OUT", "15": "EVENT- OUT"}}}, {"header_pin": 21, "pin_name": "PE7", "details": {"pin": "PE7", "lqfp100": "37", "ft": "3.3V", "type": "I/O", "structure": "TT ha", "onboard": "", "pwm": [], "uart": ["UART7 RX (AF7)"], "spi": ["QUADSPI BK2 IO0 (AF10)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["OPAMP2  VOUT", "COMP2 INM", "QUADSPI BK2 IO0 (AF10)", "FMC D4 (AF12)", "FMC DA4 (AF12)"], "all_af": {"1": "TIM1 ETR", "3": "DFSDM1 DATIN2", "7": "UART7 RX", "10": "QUADSPI BK2 IO0", "12": "FMC D4/ FMC DA4", "15": "EVENT- OUT"}}}, {"header_pin": 22, "pin_name": "PB2", "details": {"pin": "PB2", "lqfp100": "36", "ft": "5V", "type": "I/O", "structure": "FT ha", "onboard": "W25Q64 QSPI Flash CLK", "pwm": [], "uart": [], "spi": ["SPI3 MOSI (AF7)", "I2S3 SDO (AF7)", "QUADSPI CLK (AF9)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["COMP1 INP", "QUADSPI CLK (AF9)"], "all_af": {"0": "RTC OUT", "2": "SAI1 D1", "4": "DFSDM1 CKIN1", "6": "SAI1 SD A", "7": "SPI3 MOSI/I2S3 SDO", "8": "SAI4 SD A", "9": "QUADSPI CLK", "10": "SAI4 D1", "15": "EVENT- OUT"}}}, {"header_pin": 23, "pin_name": "PB1", "details": {"pin": "PB1", "lqfp100": "35", "ft": "3.3V", "type": "I/O", "structure": "TT u", "onboard": "TFT LCD J4-7 (RS / DC)", "pwm": ["TIM1 CH3N (AF1)", "TIM3 CH4 (AF2)", "TIM8 CH3N (AF3)"], "uart": [], "spi": [], "i2c": [], "can": [], "adc": ["ADC12 INP5"], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG HS ULPI D2 (AF10)"], "eth": ["ETH MII RXD3 (AF11)"], "extra": ["COMP1 INM", "LCD R6 (AF9)", "LCD G0 (AF14)"], "all_af": {"1": "TIM1 CH3N", "2": "TIM3 CH4", "3": "TIM8 CH3N", "6": "DFSDM1 DATIN1", "9": "LCD R6", "10": "OTG HS ULPI D2", "11": "ETH MII RXD3", "14": "LCD G0", "15": "EVENT- OUT"}}}, {"header_pin": 24, "pin_name": "PB0", "details": {"pin": "PB0", "lqfp100": "34", "ft": "5V", "type": "I/O", "structure": "FT a", "onboard": "TFT LCD J4-8 (BLK / Backlight PWM)", "pwm": ["TIM1 CH2N (AF1)", "TIM3 CH3 (AF2)", "TIM8 CH2N (AF3)"], "uart": ["UART4 CTS (AF8)"], "spi": [], "i2c": [], "can": [], "adc": ["ADC12 INN5", "ADC12 INP9"], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG HS ULPI D1 (AF10)"], "eth": ["ETH MII RXD2 (AF11)"], "extra": ["OPAMP1 VINP", "COMP1 INP", "LCD R3 (AF9)", "LCD G1 (AF14)"], "all_af": {"1": "TIM1 CH2N", "2": "TIM3 CH3", "3": "TIM8 CH2N", "6": "DFSDM1 CKOUT", "8": "UART4 CTS", "9": "LCD R3", "10": "OTG HS ULPI D1", "11": "ETH MII RXD2", "14": "LCD G1", "15": "EVENT- OUT"}}}, {"header_pin": 25, "pin_name": "PC5", "details": {"pin": "PC5", "lqfp100": "33", "ft": "3.3V", "type": "I/O", "structure": "TT a", "onboard": "User Button K2 (Active LOW)", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": ["ADC12 INN4", "ADC12 INP8"], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": ["ETH MII RXD1 (AF11)", "ETH RMII RXD1 (AF11)"], "extra": ["OPAMP1  VINM", "FMC SDCK E0 (AF12)"], "all_af": {"2": "SAI1 D3", "3": "DFSDM1 DATIN2", "9": "SPDIFRX1 IN4", "10": "SAI4 D3", "11": "ETH MII RXD1/ETH RMII RXD1", "12": "FMC SDCK E0", "13": "COMP1 OUT", "15": "EVENT- OUT"}}}, {"header_pin": 26, "pin_name": "PC4", "details": {"pin": "PC4", "lqfp100": "32", "ft": "3.3V", "type": "I/O", "structure": "TT a", "onboard": "", "pwm": [], "uart": [], "spi": ["I2S1 MCK (AF5)"], "i2c": [], "can": [], "adc": ["ADC12 INP4"], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": ["ETH MII RXD0 (AF11)", "ETH RMII RXD0 (AF11)"], "extra": ["OPAMP1  VOUT", "COMP1 INM", "FMC SDNE 0 (AF12)"], "all_af": {"3": "DFSDM1 CKIN2", "5": "I2S1 MCK", "9": "SPDIFRX1 IN3", "11": "ETH MII RXD0/ETH RMII RXD0", "12": "FMC SDNE 0", "15": "EVENT- OUT"}}}, {"header_pin": 27, "pin_name": "PA7", "details": {"pin": "PA7", "lqfp100": "31", "ft": "3.3V", "type": "I/O", "structure": "TT a", "onboard": "", "pwm": ["TIM1 CH1N (AF1)", "TIM3 CH2 (AF2)", "TIM8 CH1 N (AF3)", "TIM14 CH1 (AF9)"], "uart": [], "spi": ["SPI1 MOSI (AF5)", "I2S1 SDO (AF5)", "SPI6 MOSI (AF8)"], "i2c": [], "can": [], "adc": ["ADC12 INN3", "ADC12 INP7"], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": ["ETH MII RX DV (AF11)", "ETH RMII CRS DV (AF11)"], "extra": ["OPAMP1 VINM", "FMC SDN WE (AF12)"], "all_af": {"1": "TIM1 CH1N", "2": "TIM3 CH2", "3": "TIM8 CH1 N", "5": "SPI1 MOSI /I2S1 SDO", "8": "SPI6 MOSI", "9": "TIM14 CH1", "11": "ETH MII RX DV/ ETH RMII CRS DV", "12": "FMC SDN WE", "15": "EVENT- OUT"}}}, {"header_pin": 28, "pin_name": "PA6", "details": {"pin": "PA6", "lqfp100": "30", "ft": "5V", "type": "I/O", "structure": "FT a", "onboard": "", "pwm": ["TIM3 CH1 (AF2)", "TIM13 CH1 (AF9)"], "uart": [], "spi": ["SPI1 MISO (AF5)", "I2S1 SDI (AF5)", "SPI6 MISO (AF8)"], "i2c": [], "can": [], "adc": ["ADC12 INP3"], "dac": [], "sdmmc": [], "dcmi": ["DCMI PIX CLK (AF13)"], "usb": [], "eth": [], "extra": ["LCD G2 (AF14)"], "all_af": {"1": "TIM1 BKIN", "2": "TIM3 CH1", "3": "TIM8 BKIN", "5": "SPI1 MISO /I2S1 SDI", "8": "SPI6 MISO", "9": "TIM13 CH1", "10": "TIM8 BKIN COMP12", "11": "MDIOS MDC", "12": "TIM1 BKIN COMP12", "13": "DCMI PIX CLK", "14": "LCD G2", "15": "EVENT- OUT"}}}, {"header_pin": 29, "pin_name": "PA5", "details": {"pin": "PA5", "lqfp100": "29", "ft": "3.3V", "type": "I/O", "structure": "TT ha", "onboard": "", "pwm": ["TIM2 CH1 (AF1)", "TIM8 CH1N (AF3)"], "uart": [], "spi": ["SPI1 SCK (AF5)", "I2S1 CK (AF5)", "SPI6 SCK (AF8)"], "i2c": [], "can": [], "adc": ["ADC12 INN18", "ADC12 INP19"], "dac": ["DAC1 OUT2"], "sdmmc": [], "dcmi": [], "usb": ["OTG HS ULPI CK (AF10)"], "eth": [], "extra": ["LCD R4 (AF14)"], "all_af": {"0": "D2 PWREN", "1": "TIM2 CH1/ TIM2 ETR", "3": "TIM8 CH1N", "5": "SPI1 SCK /I2S1 CK", "8": "SPI6 SCK", "10": "OTG HS ULPI CK", "14": "LCD R4", "15": "EVENT- OUT"}}}, {"header_pin": 30, "pin_name": "PA4", "details": {"pin": "PA4", "lqfp100": "28", "ft": "3.3V", "type": "I/O", "structure": "TT a", "onboard": "", "pwm": [], "uart": ["USART2 CK (AF7)"], "spi": ["SPI1 NSS (AF5)", "I2S1 WS (AF5)", "SPI3 NSS (AF6)", "I2S3 WS (AF6)", "SPI6 NSS (AF8)"], "i2c": [], "can": [], "adc": ["ADC12 INP18"], "dac": ["DAC1 OUT1"], "sdmmc": [], "dcmi": ["DCMI HSYNC (AF13)"], "usb": ["OTG HS SOF (AF12)"], "eth": [], "extra": ["LCD VSYNC (AF14)"], "all_af": {"0": "D1 PWREN", "2": "TIM5 ETR", "5": "SPI1 NSS/ I2S1 WS", "6": "SPI3 NSS/ I2S3 WS", "7": "USART2 CK", "8": "SPI6 NSS", "12": "OTG HS SOF", "13": "DCMI HSYNC", "14": "LCD VSYNC", "15": "EVENT- OUT"}}}, {"header_pin": 31, "pin_name": "PA3", "details": {"pin": "PA3", "lqfp100": "25", "ft": "5V", "type": "I/O", "structure": "FT ha", "onboard": "", "pwm": ["TIM2 CH4 (AF1)", "TIM5 CH4 (AF2)", "LPTIM5 OUT (AF3)", "TIM15 CH2 (AF4)"], "uart": ["USART2 RX (AF7)"], "spi": [], "i2c": [], "can": [], "adc": ["ADC12 INP15"], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG HS ULPI D0 (AF10)"], "eth": ["ETH MII COL (AF11)"], "extra": ["LCD B2 (AF9)", "LCD B5 (AF14)"], "all_af": {"1": "TIM2 CH4", "2": "TIM5 CH4", "3": "LPTIM5 OUT", "4": "TIM15 CH2", "7": "USART2 RX", "9": "LCD B2", "10": "OTG HS ULPI D0", "11": "ETH MII COL", "14": "LCD B5", "15": "EVENT- OUT"}}}, {"header_pin": 32, "pin_name": "PA2", "details": {"pin": "PA2", "lqfp100": "24", "ft": "5V", "type": "I/O", "structure": "FT a", "onboard": "", "pwm": ["TIM2 CH3 (AF1)", "TIM5 CH3 (AF2)", "LPTIM4 OUT (AF3)", "TIM15 CH1 (AF4)"], "uart": ["USART2 TX (AF7)"], "spi": [], "i2c": [], "can": [], "adc": ["ADC12 INP14"], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": ["ETH MDIO (AF11)"], "extra": ["WKUP1", "LCD R1 (AF14)"], "all_af": {"1": "TIM2 CH3", "2": "TIM5 CH3", "3": "LPTIM4 OUT", "4": "TIM15 CH1", "7": "USART2 TX", "8": "SAI2 SCK B", "11": "ETH MDIO", "12": "MDIOS MDIO", "14": "LCD R1", "15": "EVENT- OUT"}}}, {"header_pin": 33, "pin_name": "PA1", "details": {"pin": "PA1", "lqfp100": "23", "ft": "5V", "type": "I/O", "structure": "FT ha", "onboard": "User LED D2 (Active LOW)", "pwm": ["TIM2 CH2 (AF1)", "TIM5 CH2 (AF2)", "LPTIM3 OUT (AF3)", "TIM15 CH1N (AF4)"], "uart": ["USART2 RTS (AF7)", "USART2 DE (AF7)", "UART4 RX (AF8)"], "spi": ["QUADSPI BK1 IO3 (AF9)"], "i2c": [], "can": [], "adc": ["ADC1 INN16", "ADC1 INP17"], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": ["ETH MII RX CLK (AF11)", "ETH RMII REF CLK (AF11)"], "extra": ["QUADSPI BK1 IO3 (AF9)", "LCD R2 (AF14)"], "all_af": {"1": "TIM2 CH2", "2": "TIM5 CH2", "3": "LPTIM3 OUT", "4": "TIM15 CH1N", "7": "USART2 RTS/ USART2 DE", "8": "UART4 RX", "9": "QUADSPI BK1 IO3", "10": "SAI2 MCLK B", "11": "ETH MII RX CLK/ ETH RMII REF CLK", "14": "LCD R2", "15": "EVENT- OUT"}}}, {"header_pin": 34, "pin_name": "PA0", "details": {"pin": "PA0", "lqfp100": "22", "ft": "5V", "type": "I/O", "structure": "FT a", "onboard": "", "pwm": ["TIM2 CH1 (AF1)", "TIM5 CH1 (AF2)"], "uart": ["USART2 CTS (AF7)", "USART2 NSS (AF7)", "UART4 TX (AF8)"], "spi": [], "i2c": [], "can": [], "adc": ["ADC1 INP16"], "dac": [], "sdmmc": ["SDMMC2 CMD (AF9)"], "dcmi": [], "usb": [], "eth": ["ETH MII CRS (AF11)"], "extra": ["WKUP0"], "all_af": {"1": "TIM2 CH1/ TIM2 ETR", "2": "TIM5 CH1", "3": "TIM8 ETR", "4": "TIM15 BKIN", "7": "USART2 CTS/ USART2 NSS", "8": "UART4 TX", "9": "SDMMC2 CMD", "10": "SAI2 SD B", "11": "ETH MII CRS", "15": "EVENT- OUT"}}}, {"header_pin": 35, "pin_name": "PC3", "details": {"pin": "PC3", "lqfp100": "-", "ft": "5V", "type": "I/O", "structure": "FT a", "onboard": "", "pwm": [], "uart": [], "spi": ["SPI2 MOSI (AF5)", "I2S2 SDO (AF5)"], "i2c": [], "can": [], "adc": ["ADC12 INN12", "ADC12 INP13"], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG HS ULPI NXT (AF10)"], "eth": ["ETH MII TX CLK (AF11)"], "extra": ["FMC SDCK E0 (AF12)"], "all_af": {"0": "CSLEEP", "3": "DFSDM1 DATIN1", "5": "SPI2 MOSI/I2S2 SDO", "10": "OTG HS ULPI NXT", "11": "ETH MII TX CLK", "12": "FMC SDCK E0", "15": "EVENT- OUT"}}}, {"header_pin": 36, "pin_name": "PC2", "details": {"pin": "PC2", "lqfp100": "-", "ft": "5V", "type": "I/O", "structure": "FT a", "onboard": "", "pwm": [], "uart": [], "spi": ["SPI2 MISO (AF5)", "I2S2 SDI (AF5)"], "i2c": [], "can": [], "adc": ["ADC123  INN11", "ADC123  INP12"], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG HS ULPI DIR (AF10)"], "eth": ["ETH MII TXD2 (AF11)"], "extra": ["FMC SDNE 0 (AF12)"], "all_af": {"0": "CDSLEEP", "3": "DFSDM1 CKIN1", "5": "SPI2 MISO/I2S2 SDI", "6": "DFSDM1 CKOUT", "10": "OTG HS ULPI DIR", "11": "ETH MII TXD2", "12": "FMC SDNE 0", "15": "EVENT- OUT"}}}, {"header_pin": 37, "pin_name": "PC1", "details": {"pin": "PC1", "lqfp100": "16", "ft": "5V", "type": "I/O", "structure": "FT ha", "onboard": "", "pwm": [], "uart": [], "spi": ["SPI2 MOSI (AF5)", "I2S2 SDO (AF5)"], "i2c": [], "can": [], "adc": ["ADC123  INN10", "ADC123  INP11"], "dac": [], "sdmmc": ["SDMMC2 CK (AF9)"], "dcmi": [], "usb": [], "eth": ["ETH MDC (AF11)"], "extra": ["RTC TAMP3/  WKUP5"], "all_af": {"0": "TRACED0", "2": "SAI1 D1", "3": "DFSDM1 DATIN0", "4": "DFSDM1 CKIN4", "5": "SPI2 MOSI/I2S2 SDO", "6": "SAI1 SD A", "8": "SAI4 SD A", "9": "SDMMC2 CK", "10": "SAI4 D1", "11": "ETH MDC", "12": "MDIOS MDC", "15": "EVENT- OUT"}}}, {"header_pin": 38, "pin_name": "PC0", "details": {"pin": "PC0", "lqfp100": "15", "ft": "5V", "type": "I/O", "structure": "FT a", "onboard": "", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": ["ADC123  INP10"], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG HS ULPI STP (AF10)"], "eth": [], "extra": ["FMC SDNWE (AF12)", "LCD R5 (AF14)"], "all_af": {"3": "DFSDM1 CKIN0", "6": "DFSDM1 DATIN4", "8": "SAI2 FS B", "10": "OTG HS ULPI STP", "12": "FMC SDNWE", "14": "LCD R5", "15": "EVENT- OUT"}}}, {"header_pin": 39, "pin_name": "PC13", "details": {"pin": "PC13", "lqfp100": "7", "ft": "5V", "type": "I/O", "structure": "FT", "onboard": "", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["RTC TAMP1/  RTC TS/WKUP2"], "all_af": {"15": "EVENT- OUT"}}}, {"header_pin": 40, "pin_name": "PE6", "details": {"pin": "PE6", "lqfp100": "5", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": ["TIM15 CH2 (AF4)"], "uart": [], "spi": ["SPI4 MOSI (AF5)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": ["DCMI D7 (AF13)"], "usb": [], "eth": [], "extra": ["FMC A22 (AF12)", "LCD G1 (AF14)"], "all_af": {"0": "TRACED3", "1": "TIM1 BKIN2", "2": "SAI1 D1", "4": "TIM15 CH2", "5": "SPI4 MOSI", "6": "SAI1 SD A", "8": "SAI4 SD A", "9": "SAI4 D1", "10": "SAI2 MCLK B", "11": "TIM1 BKIN 2 COMP12", "12": "FMC A22", "13": "DCMI D7", "14": "LCD G1", "15": "EVENT- OUT"}}}, {"header_pin": 41, "pin_name": "PE5", "details": {"pin": "PE5", "lqfp100": "4", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": ["TIM15 CH1 (AF4)"], "uart": [], "spi": ["SPI4 MISO (AF5)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": ["DCMI D6 (AF13)"], "usb": [], "eth": [], "extra": ["FMC A21 (AF12)", "LCD G0 (AF14)"], "all_af": {"0": "TRACED2", "2": "SAI1 CK2", "3": "DFSDM1 CKIN3", "4": "TIM15 CH1", "5": "SPI4 MISO", "6": "SAI1 SCK A", "8": "SAI4 SCK A", "10": "SAI4 CK2", "12": "FMC A21", "13": "DCMI D6", "14": "LCD G0", "15": "EVENT- OUT"}}}, {"header_pin": 42, "pin_name": "PE4", "details": {"pin": "PE4", "lqfp100": "3", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": ["TIM15 CH1 N (AF4)"], "uart": [], "spi": ["SPI4 NSS (AF5)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": ["DCMI D4 (AF13)"], "usb": [], "eth": [], "extra": ["FMC A20 (AF12)", "LCD B0 (AF14)"], "all_af": {"0": "TRACED1", "2": "SAI1 D2", "3": "DFSDM1 DATIN3", "4": "TIM15 CH1 N", "5": "SPI4 NSS", "6": "SAI1 FS A", "8": "SAI4 FS A", "10": "SAI4 D2", "12": "FMC A20", "13": "DCMI D4", "14": "LCD B0", "15": "EVENT- OUT"}}}, {"header_pin": 43, "pin_name": "PE3", "details": {"pin": "PE3", "lqfp100": "2", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "User Button K1 (Active LOW)", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["FMC A19 (AF12)"], "all_af": {"0": "TRACED0", "4": "TIM15 BKIN", "6": "SAI1 SD B", "8": "SAI4 SD B", "12": "FMC A19", "15": "EVENT- OUT"}}}, {"header_pin": 44, "pin_name": "PE2", "details": {"pin": "PE2", "lqfp100": "1", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "W25Q64 QSPI Flash /WP (IO2)", "pwm": [], "uart": [], "spi": ["SPI4 SCK (AF5)", "QUADSPI BK1 IO2 (AF9)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": ["ETH MII TXD3 (AF11)"], "extra": ["QUADSPI BK1 IO2 (AF9)", "FMC A23 (AF12)"], "all_af": {"0": "TRACE CLK", "2": "SAI1 CK1", "5": "SPI4 SCK", "6": "SAI1 MCLK A", "8": "SAI4 MCLK A", "9": "QUADSPI BK1 IO2", "10": "SAI4 CK1", "11": "ETH MII TXD3", "12": "FMC A23", "15": "EVENT- OUT"}}}], "J2_RIGHT_HEADER": [{"header_pin": 1, "pin_name": "5V", "details": {"pin": "5V", "lqfp100": "-", "ft": "N/A", "type": "POWER", "onboard": "Power Rail", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 2, "pin_name": "5V", "details": {"pin": "5V", "lqfp100": "-", "ft": "N/A", "type": "POWER", "onboard": "Power Rail", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 3, "pin_name": "3V3", "details": {"pin": "3V3", "lqfp100": "-", "ft": "N/A", "type": "POWER", "onboard": "Power Rail", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 4, "pin_name": "3V3", "details": {"pin": "3V3", "lqfp100": "-", "ft": "N/A", "type": "POWER", "onboard": "Power Rail", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 5, "pin_name": "GND", "details": {"pin": "GND", "lqfp100": "-", "ft": "N/A", "type": "GND", "onboard": "Ground Plane", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 6, "pin_name": "GND", "details": {"pin": "GND", "lqfp100": "-", "ft": "N/A", "type": "GND", "onboard": "Ground Plane", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 7, "pin_name": "PD9", "details": {"pin": "PD9", "lqfp100": "56", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": [], "uart": ["USART3 RX (AF7)"], "spi": [], "i2c": [], "can": ["FDCAN2 R XFD MODE (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["FMC D14 (AF12)", "FMC DA14 (AF12)"], "all_af": {"3": "DFSDM1 DATIN3", "6": "SAI3 SD B", "7": "USART3 RX", "9": "FDCAN2 R XFD MODE", "12": "FMC D14/ FMC DA14", "15": "EVENT- OUT"}}}, {"header_pin": 8, "pin_name": "PD8", "details": {"pin": "PD8", "lqfp100": "55", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": [], "uart": ["USART3 TX (AF7)"], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["FMC D13 (AF12)", "FMC DA13 (AF12)"], "all_af": {"3": "DFSDM1 CKIN3", "6": "SAI3 SCK B", "7": "USART3 TX", "9": "SPDIFRX1 IN2", "12": "FMC D13/ FMC DA13", "15": "EVENT- OUT"}}}, {"header_pin": 9, "pin_name": "PD11", "details": {"pin": "PD11", "lqfp100": "58", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "W25Q64 QSPI Flash DI (IO0)", "pwm": ["LPTIM2 IN2 (AF3)"], "uart": ["USART3 CTS (AF7)", "USART3 N SS (AF7)"], "spi": ["QUADSPI BK1 IO0 (AF9)"], "i2c": ["I2C4 SMBA (AF4)"], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["QUADSPI BK1 IO0 (AF9)", "FMC A16 (AF12)"], "all_af": {"3": "LPTIM2 IN2", "4": "I2C4 SMBA", "7": "USART3 CTS/ USART3 N SS", "9": "QUADSPI BK1 IO0", "10": "SAI2 SD A", "12": "FMC A16", "15": "EVENT- OUT"}}}, {"header_pin": 10, "pin_name": "PD10", "details": {"pin": "PD10", "lqfp100": "57", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": [], "uart": ["USART3 CK (AF7)"], "spi": [], "i2c": [], "can": ["FDCAN2 T XFD MODE (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["FMC D15 (AF12)", "FMC DA15 (AF12)", "LCD B3 (AF14)"], "all_af": {"3": "DFSDM1 CKOUT", "6": "SAI3 FS B", "7": "USART3 CK", "9": "FDCAN2 T XFD MODE", "12": "FMC D15/ FMC DA15", "14": "LCD B3", "15": "EVENT- OUT"}}}, {"header_pin": 11, "pin_name": "PD13", "details": {"pin": "PD13", "lqfp100": "60", "ft": "5V", "type": "I/O", "structure": "FT fh", "onboard": "W25Q64 QSPI Flash /HOLD (IO3)", "pwm": ["LPTIM1 OUT (AF1)", "TIM4 CH2 (AF2)"], "uart": [], "spi": ["QUADSPI BK1 IO3 (AF9)"], "i2c": ["I2C4 SDA (AF4)"], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["QUADSPI BK1 IO3 (AF9)", "FMC A18 (AF12)"], "all_af": {"1": "LPTIM1 OUT", "2": "TIM4 CH2", "4": "I2C4 SDA", "9": "QUADSPI BK1 IO3", "10": "SAI2 SCK A", "12": "FMC A18", "15": "EVENT- OUT"}}}, {"header_pin": 12, "pin_name": "PD12", "details": {"pin": "PD12", "lqfp100": "59", "ft": "5V", "type": "I/O", "structure": "FT fh", "onboard": "W25Q64 QSPI Flash DO (IO1)", "pwm": ["LPTIM1 IN1 (AF1)", "TIM4 CH1 (AF2)", "LPTIM2 IN1 (AF3)"], "uart": ["USART3 RTS (AF7)", "USART3 DE (AF7)"], "spi": ["QUADSPI BK1 IO1 (AF9)"], "i2c": ["I2C4 SCL (AF4)"], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["QUADSPI BK1 IO1 (AF9)", "FMC A17 (AF12)"], "all_af": {"1": "LPTIM1 IN1", "2": "TIM4 CH1", "3": "LPTIM2 IN1", "4": "I2C4 SCL", "7": "USART3 RTS/ USART3 DE", "9": "QUADSPI BK1 IO1", "10": "SAI2 FS A", "12": "FMC A17", "15": "EVENT- OUT"}}}, {"header_pin": 13, "pin_name": "PD15", "details": {"pin": "PD15", "lqfp100": "62", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": ["TIM4 CH4 (AF2)"], "uart": ["UART8 RTS (AF8)", "UART8 DE (AF8)"], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["FMC D1 (AF12)", "FMC DA1 (AF12)"], "all_af": {"2": "TIM4 CH4", "6": "SAI3 MCLK A", "8": "UART8 RTS/ UART8 DE", "12": "FMC D1/ FMC DA1", "15": "EVENT- OUT"}}}, {"header_pin": 14, "pin_name": "PD14", "details": {"pin": "PD14", "lqfp100": "61", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": ["TIM4 CH3 (AF2)"], "uart": ["UART8 CTS (AF8)"], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["FMC D0 (AF12)", "FMC DA0 (AF12)"], "all_af": {"2": "TIM4 CH3", "6": "SAI3 MCLK B", "8": "UART8 CTS", "12": "FMC D0/ FMC DA0", "15": "EVENT- OUT"}}}, {"header_pin": 15, "pin_name": "PC7", "details": {"pin": "PC7", "lqfp100": "64", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": ["HRTIM CH A2 (AF1)", "TIM3 CH2 (AF2)", "TIM8 CH2 (AF3)"], "uart": ["USART6 RX (AF7)"], "spi": ["I2S3 MCK (AF6)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": ["SDMMC1 D123DIR (AF8)", "SDMMC2 D7 (AF10)", "SDMMC1 D7 (AF12)"], "dcmi": ["DCMI D1 (AF13)"], "usb": [], "eth": [], "extra": ["FMC NE1 (AF9)", "LCD G6 (AF14)"], "all_af": {"0": "TRGIO", "1": "HRTIM CH A2", "2": "TIM3 CH2", "3": "TIM8 CH2", "4": "DFSDM1 DATIN3", "6": "I2S3 MCK", "7": "USART6 RX", "8": "SDMMC1 D123DIR", "9": "FMC NE1", "10": "SDMMC2 D7", "11": "SWPMI TX", "12": "SDMMC1 D7", "13": "DCMI D1", "14": "LCD G6", "15": "EVENT- OUT"}}}, {"header_pin": 16, "pin_name": "PC6", "details": {"pin": "PC6", "lqfp100": "63", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": ["HRTIM CH A1 (AF1)", "TIM3 CH1 (AF2)", "TIM8 CH1 (AF3)"], "uart": ["USART6 TX (AF7)"], "spi": ["I2S2 MCK (AF5)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": ["SDMMC1 D0DIR (AF8)", "SDMMC2 D6 (AF10)", "SDMMC1 D6 (AF12)"], "dcmi": ["DCMI D0 (AF13)"], "usb": [], "eth": [], "extra": ["SWPMI IO", "FMC NWAIT (AF9)", "LCD HSYNC (AF14)"], "all_af": {"1": "HRTIM CH A1", "2": "TIM3 CH1", "3": "TIM8 CH1", "4": "DFSDM1 CKIN3", "5": "I2S2 MCK", "7": "USART6 TX", "8": "SDMMC1 D0DIR", "9": "FMC NWAIT", "10": "SDMMC2 D6", "12": "SDMMC1 D6", "13": "DCMI D0", "14": "LCD HSYNC", "15": "EVENT- OUT"}}}, {"header_pin": 17, "pin_name": "PC9", "details": {"pin": "PC9", "lqfp100": "66", "ft": "5V", "type": "I/O", "structure": "FT fh", "onboard": "MicroSD DAT1 (SDMMC1_D1)", "pwm": ["TIM3 CH4 (AF2)", "TIM8 CH4 (AF3)"], "uart": ["UART5 CTS (AF8)"], "spi": ["I2S CKIN (AF5)", "QUADSPI BK1 IO0 (AF9)"], "i2c": ["I2C3 SDA (AF4)"], "can": [], "adc": [], "dac": [], "sdmmc": ["SDMMC1 D1 (AF12)"], "dcmi": ["DCMI D3 (AF13)"], "usb": [], "eth": [], "extra": ["QUADSPI BK1 IO0 (AF9)", "LCD G3 (AF10)", "LCD B2 (AF14)"], "all_af": {"0": "MCO2", "2": "TIM3 CH4", "3": "TIM8 CH4", "4": "I2C3 SDA", "5": "I2S CKIN", "8": "UART5 CTS", "9": "QUADSPI BK1 IO0", "10": "LCD G3", "11": "SWPMI SUSPEND", "12": "SDMMC1 D1", "13": "DCMI D3", "14": "LCD B2", "15": "EVENT- OUT"}}}, {"header_pin": 18, "pin_name": "PC8", "details": {"pin": "PC8", "lqfp100": "65", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "MicroSD DAT0 (SDMMC1_D0)", "pwm": ["HRTIM CH B1 (AF1)", "TIM3 CH3 (AF2)", "TIM8 CH3 (AF3)"], "uart": ["USART6 CK (AF7)", "UART5 RTS (AF8)", "UART5 DE (AF8)"], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": ["SDMMC1 D0 (AF12)"], "dcmi": ["DCMI D2 (AF13)"], "usb": [], "eth": [], "extra": ["FMC NE2 (AF9)", "FMC NCE (AF9)"], "all_af": {"0": "TRACED1", "1": "HRTIM CH B1", "2": "TIM3 CH3", "3": "TIM8 CH3", "7": "USART6 CK", "8": "UART5 RTS/ UART5 DE", "9": "FMC NE2/ FMC NCE", "11": "SWPMI RX", "12": "SDMMC1 D0", "13": "DCMI D2", "15": "EVENT- OUT"}}}, {"header_pin": 19, "pin_name": "PA9", "details": {"pin": "PA9", "lqfp100": "68", "ft": "5V", "type": "I/O", "structure": "FT u", "onboard": "USART1_TX (Default Serial Console)", "pwm": ["TIM1 CH2 (AF1)", "HRTIM CH C1 (AF2)"], "uart": ["LPUART1 TX (AF3)", "USART1 TX (AF7)"], "spi": ["SPI2 SCK (AF5)", "I2S2 CK (AF5)"], "i2c": ["I2C3 SMBA (AF4)"], "can": ["FDCAN1 RXFD MODE (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": ["DCMI D0 (AF13)"], "usb": [], "eth": [], "extra": ["OTG FS VBUS", "LCD R5 (AF14)"], "all_af": {"1": "TIM1 CH2", "2": "HRTIM CH C1", "3": "LPUART1 TX", "4": "I2C3 SMBA", "5": "SPI2 SCK/ I2S2 CK", "7": "USART1 TX", "9": "FDCAN1 RXFD MODE", "13": "DCMI D0", "14": "LCD R5", "15": "EVENT- OUT"}}}, {"header_pin": 20, "pin_name": "PA8", "details": {"pin": "PA8", "lqfp100": "67", "ft": "5V", "type": "I/O", "structure": "FT fha", "onboard": "", "pwm": ["TIM1 CH1 (AF1)", "HRTIM CH B2 (AF2)"], "uart": ["USART1 CK (AF7)", "UART7 RX (AF11)"], "spi": [], "i2c": ["I2C3 SCL (AF4)"], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG FS SOF (AF10)"], "eth": [], "extra": ["LCD B3 (AF13)", "LCD R6 (AF14)"], "all_af": {"0": "MCO1", "1": "TIM1 CH1", "2": "HRTIM CH B2", "3": "TIM8 BKIN 2", "4": "I2C3 SCL", "7": "USART1 CK", "10": "OTG FS SOF", "11": "UART7 RX", "12": "TIM8 BKIN 2 COMP12", "13": "LCD B3", "14": "LCD R6", "15": "EVENT- OUT"}}}, {"header_pin": 21, "pin_name": "PA11", "details": {"pin": "PA11", "lqfp100": "70", "ft": "5V", "type": "I/O", "structure": "FT u", "onboard": "USB OTG_FS DM (Micro-USB Port)", "pwm": ["TIM1 CH4 (AF1)", "HRTIM CH D1 (AF2)"], "uart": ["LPUART1 CTS (AF3)", "UART4 RX (AF6)", "USART1 CTS (AF7)", "USART1 NSS (AF7)"], "spi": ["SPI2 NSS (AF5)", "I2S2 WS (AF5)"], "i2c": [], "can": ["FDCAN1 RX (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG FS DM (AF10)"], "eth": [], "extra": ["LCD R4 (AF14)"], "all_af": {"1": "TIM1 CH4", "2": "HRTIM CH D1", "3": "LPUART1 CTS", "5": "SPI2 NSS /I2S2 WS", "6": "UART4 RX", "7": "USART1 CTS/ USART1 NSS", "9": "FDCAN1 RX", "10": "OTG FS DM", "14": "LCD R4", "15": "EVENT- OUT"}}}, {"header_pin": 22, "pin_name": "PA10", "details": {"pin": "PA10", "lqfp100": "69", "ft": "5V", "type": "I/O", "structure": "FT u", "onboard": "USART1_RX (Default Serial Console)", "pwm": ["TIM1 CH3 (AF1)", "HRTIM CH C2 (AF2)"], "uart": ["LPUART1 RX (AF3)", "USART1 RX (AF7)"], "spi": [], "i2c": [], "can": ["FDCAN1 TXFD MODE (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": ["DCMI D1 (AF13)"], "usb": ["OTG FS ID (AF10)"], "eth": [], "extra": ["LCD B4 (AF12)", "LCD B1 (AF14)"], "all_af": {"1": "TIM1 CH3", "2": "HRTIM CH C2", "3": "LPUART1 RX", "7": "USART1 RX", "9": "FDCAN1 TXFD MODE", "10": "OTG FS ID", "11": "MDIOS MDIO", "12": "LCD B4", "13": "DCMI D1", "14": "LCD B1", "15": "EVENT- OUT"}}}, {"header_pin": 23, "pin_name": "PA15", "details": {"pin": "PA15", "lqfp100": "", "ft": "3.3V", "type": "I/O", "structure": "", "onboard": "", "pwm": ["TIM2 CH1 (AF1)", "HRTIM FLT1 (AF2)"], "uart": ["UART4 RTS (AF8)", "UART4 DE (AF8)", "UART7 TX (AF11)"], "spi": ["SPI1 NSS (AF5)", "I2S1 WS (AF5)", "SPI3 NSS (AF6)", "I2S3 WS (AF6)", "SPI6 NSS (AF7)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {"0": "JTDI", "1": "TIM2 CH1/ TIM2 ETR", "2": "HRTIM FLT1", "4": "CEC", "5": "SPI1 NSS/ I2S1 WS", "6": "SPI3 NSS/ I2S3 WS", "7": "SPI6 NSS", "8": "UART4 RTS/ UART4 DE", "11": "UART7 TX", "15": "EVENT- OUT"}}}, {"header_pin": 24, "pin_name": "PA12", "details": {"pin": "PA12", "lqfp100": "71", "ft": "5V", "type": "I/O", "structure": "FT u", "onboard": "USB OTG_FS DP (Micro-USB Port)", "pwm": ["HRTIM CH D2 (AF2)"], "uart": ["LPUART1 RTS (AF3)", "LPUART1 DE (AF3)", "UART4 TX (AF6)", "USART1 RTS (AF7)", "USART1 DE (AF7)"], "spi": ["SPI2 SCK (AF5)", "I2S2 CK (AF5)"], "i2c": [], "can": ["FDCAN1 TX (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG FS DP (AF10)"], "eth": [], "extra": ["LCD R5 (AF14)"], "all_af": {"1": "TIM1 ETR", "2": "HRTIM CH D2", "3": "LPUART1 RTS/ LPUART1 DE", "5": "SPI2 SCK/ I2S2 CK", "6": "UART4 TX", "7": "USART1 RTS/ USART1 DE", "8": "SAI2 FS B", "9": "FDCAN1 TX", "10": "OTG FS DP", "14": "LCD R5", "15": "EVENT- OUT"}}}, {"header_pin": 25, "pin_name": "PC11", "details": {"pin": "PC11", "lqfp100": "79", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "MicroSD DAT3 (SDMMC1_D3)", "pwm": ["HRTIM FLT2 (AF2)"], "uart": ["USART3 RX (AF7)", "UART4 RX (AF8)"], "spi": ["SPI3 MISO (AF6)", "I2S3 SDI (AF6)", "QUADSPI BK2 NCS (AF9)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": ["SDMMC1 D3 (AF12)"], "dcmi": ["DCMI D4 (AF13)"], "usb": [], "eth": [], "extra": ["QUADSPI BK2 NCS (AF9)"], "all_af": {"2": "HRTIM FLT2", "3": "DFSDM1 DATIN5", "6": "SPI3 MISO/ I2S3 SDI", "7": "USART3 RX", "8": "UART4 RX", "9": "QUADSPI BK2 NCS", "12": "SDMMC1 D3", "13": "DCMI D4", "15": "EVENT- OUT"}}}, {"header_pin": 26, "pin_name": "PC10", "details": {"pin": "PC10", "lqfp100": "78", "ft": "5V", "type": "I/O", "structure": "FT ha", "onboard": "MicroSD DAT2 (SDMMC1_D2)", "pwm": ["HRTIM EEV1 (AF2)"], "uart": ["USART3 TX (AF7)", "UART4 TX (AF8)"], "spi": ["SPI3 SCK (AF6)", "I2S3 CK (AF6)", "QUADSPI BK1 IO1 (AF9)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": ["SDMMC1 D2 (AF12)"], "dcmi": ["DCMI D8 (AF13)"], "usb": [], "eth": [], "extra": ["QUADSPI BK1 IO1 (AF9)", "LCD R2 (AF14)"], "all_af": {"2": "HRTIM EEV1", "3": "DFSDM1 CKIN5", "6": "SPI3 SCK/ I2S3 CK", "7": "USART3 TX", "8": "UART4 TX", "9": "QUADSPI BK1 IO1", "12": "SDMMC1 D2", "13": "DCMI D8", "14": "LCD R2", "15": "EVENT- OUT"}}}, {"header_pin": 27, "pin_name": "PD0", "details": {"pin": "PD0", "lqfp100": "81", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": [], "uart": ["UART4 RX (AF8)"], "spi": [], "i2c": [], "can": ["FDCAN1 RX (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["FMC D2 (AF12)", "FMC DA2 (AF12)"], "all_af": {"3": "DFSDM1 CKIN6", "6": "SAI3 SCK A", "8": "UART4 RX", "9": "FDCAN1 RX", "12": "FMC D2/ FMC DA2", "15": "EVENT- OUT"}}}, {"header_pin": 28, "pin_name": "PC12", "details": {"pin": "PC12", "lqfp100": "80", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "MicroSD CLK (SDMMC1_CK)", "pwm": ["HRTIM EEV2 (AF2)"], "uart": ["USART3 CK (AF7)", "UART5 TX (AF8)"], "spi": ["SPI3 MOSI (AF6)", "I2S3 SDO (AF6)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": ["SDMMC1 CK (AF12)"], "dcmi": ["DCMI D9 (AF13)"], "usb": [], "eth": [], "extra": [], "all_af": {"0": "TRACED3", "2": "HRTIM EEV2", "6": "SPI3 MOSI/ I2S3 SDO", "7": "USART3 CK", "8": "UART5 TX", "12": "SDMMC1 CK", "13": "DCMI D9", "15": "EVENT- OUT"}}}, {"header_pin": 29, "pin_name": "PD2", "details": {"pin": "PD2", "lqfp100": "83", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "MicroSD CMD (SDMMC1_CMD)", "pwm": [], "uart": ["UART5 RX (AF8)"], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": ["SDMMC1 CMD (AF12)"], "dcmi": ["DCMI D11 (AF13)"], "usb": [], "eth": [], "extra": [], "all_af": {"0": "TRACED2", "2": "TIM3 ETR", "8": "UART5 RX", "12": "SDMMC1 CMD", "13": "DCMI D11", "15": "EVENT- OUT"}}}, {"header_pin": 30, "pin_name": "PD1", "details": {"pin": "PD1", "lqfp100": "82", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": [], "uart": ["UART4 TX (AF8)"], "spi": [], "i2c": [], "can": ["FDCAN1 TX (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["FMC D3 (AF12)", "FMC DA3 (AF12)"], "all_af": {"3": "DFSDM1 DATIN6", "6": "SAI3 SD A", "8": "UART4 TX", "9": "FDCAN1 TX", "12": "FMC D3/ FMC DA3", "15": "EVENT- OUT"}}}, {"header_pin": 31, "pin_name": "PD4", "details": {"pin": "PD4", "lqfp100": "85", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": ["HRTIM FLT3 (AF2)"], "uart": ["USART2 RTS (AF7)", "USART2 DE (AF7)"], "spi": [], "i2c": [], "can": ["FDCAN1 R XFD MODE (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["FMC NOE (AF12)"], "all_af": {"2": "HRTIM FLT3", "6": "SAI3 FS A", "7": "USART2 RTS/ USART2 DE", "9": "FDCAN1 R XFD MODE", "12": "FMC NOE", "15": "EVENT- OUT"}}}, {"header_pin": 32, "pin_name": "PD3", "details": {"pin": "PD3", "lqfp100": "84", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": [], "uart": ["USART2 CTS (AF7)", "USART2 NSS (AF7)"], "spi": ["SPI2 SCK (AF5)", "I2S2 CK (AF5)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": ["DCMI D5 (AF13)"], "usb": [], "eth": [], "extra": ["FMC CLK (AF12)", "LCD G7 (AF14)"], "all_af": {"3": "DFSDM1 CKOUT", "5": "SPI2 SCK/ I2S2 CK", "7": "USART2 CTS/ USART2 NSS", "12": "FMC CLK", "13": "DCMI D5", "14": "LCD G7", "15": "EVENT- OUT"}}}, {"header_pin": 33, "pin_name": "PD6", "details": {"pin": "PD6", "lqfp100": "87", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": [], "uart": ["USART2 RX (AF7)"], "spi": ["SPI3 MOSI (AF5)", "I2S3 SDO (AF5)"], "i2c": [], "can": ["FDCAN2 R XFD MODE (AF9)"], "adc": [], "dac": [], "sdmmc": ["SDMMC2 CK (AF11)"], "dcmi": ["DCMI D10 (AF13)"], "usb": [], "eth": [], "extra": ["FMC NWAIT (AF12)", "LCD B2 (AF14)"], "all_af": {"2": "SAI1 D1", "3": "DFSDM1 CKIN4", "4": "DFSDM1 DATIN1", "5": "SPI3 MOSI/I2S3 SDO", "6": "SAI1 SD A", "7": "USART2 RX", "8": "SAI4 SD A", "9": "FDCAN2 R XFD MODE", "10": "SAI4 D1", "11": "SDMMC2 CK", "12": "FMC NWAIT", "13": "DCMI D10", "14": "LCD B2", "15": "EVENT- OUT"}}}, {"header_pin": 34, "pin_name": "PD5", "details": {"pin": "PD5", "lqfp100": "86", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": ["HRTIM EEV3 (AF2)"], "uart": ["USART2 TX (AF7)"], "spi": [], "i2c": [], "can": ["FDCAN1 T XFD MODE (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": ["FMC NWE (AF12)"], "all_af": {"2": "HRTIM EEV3", "7": "USART2 TX", "9": "FDCAN1 T XFD MODE", "12": "FMC NWE", "15": "EVENT- OUT"}}}, {"header_pin": 35, "pin_name": "PB3", "details": {"pin": "PB3", "lqfp100": "", "ft": "3.3V", "type": "I/O", "structure": "", "onboard": "", "pwm": ["TIM2 CH2 (AF1)", "HRTIM FLT4 (AF2)"], "uart": ["UART7 RX (AF11)"], "spi": ["SPI1 SCK (AF5)", "I2S1 CK (AF5)", "SPI3 SCK (AF6)", "I2S3 CK (AF6)", "SPI6 SCK (AF8)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": ["SDMMC2 D2 (AF9)"], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {"0": "JTDO/TRA CESWO", "1": "TIM2 CH2", "2": "HRTIM FLT4", "5": "SPI1 SCK/ I2S1 CK", "6": "SPI3 SCK/ I2S3 CK", "8": "SPI6 SCK", "9": "SDMMC2 D2", "10": "CRS SYNC", "11": "UART7 RX", "15": "EVENT- OUT"}}}, {"header_pin": 36, "pin_name": "PD7", "details": {"pin": "PD7", "lqfp100": "88", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": [], "uart": ["USART2 CK (AF7)"], "spi": ["SPI1 MOSI (AF5)", "I2S1 SDO (AF5)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": ["SDMMC2 CMD (AF11)"], "dcmi": [], "usb": [], "eth": [], "extra": ["FMC NE1 (AF12)"], "all_af": {"3": "DFSDM1 DATIN4", "5": "SPI1 MOSI/I2S1 SDO", "6": "DFSDM1 CKIN1", "7": "USART2 CK", "9": "SPDIFRX1 IN1", "11": "SDMMC2 CMD", "12": "FMC NE1", "15": "EVENT- OUT"}}}, {"header_pin": 37, "pin_name": "PB5", "details": {"pin": "PB5", "lqfp100": "91", "ft": "5V", "type": "I/O", "structure": "FT", "onboard": "", "pwm": ["TIM3 CH2 (AF2)", "HRTIM EEV7 (AF3)"], "uart": ["UART5 RX (AF14)"], "spi": ["SPI1 MOSI (AF5)", "I2S1 SDO (AF5)", "SPI3 MOSI (AF7)", "I2S3 SDO (AF7)", "SPI6 MOSI (AF8)"], "i2c": ["I2C1 SMBA (AF4)", "I2C4 SMBA (AF6)"], "can": ["FDCAN2 RX (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": ["DCMI D10 (AF13)"], "usb": ["OTG HS ULPI D7 (AF10)"], "eth": ["ETH PPS OUT (AF11)"], "extra": ["FMC SDCKE1 (AF12)"], "all_af": {"1": "TIM17 BKIN", "2": "TIM3 CH2", "3": "HRTIM EEV7", "4": "I2C1 SMBA", "5": "SPI1 MOSI/ I2S1 SDO", "6": "I2C4 SMBA", "7": "SPI3 MOSI/ I2S3 SDO", "8": "SPI6 MOSI", "9": "FDCAN2 RX", "10": "OTG HS ULPI D7", "11": "ETH PPS OUT", "12": "FMC SDCKE1", "13": "DCMI D10", "14": "UART5 RX", "15": "EVENT- OUT"}}}, {"header_pin": 38, "pin_name": "PB4", "details": {"pin": "PB4", "lqfp100": "", "ft": "3.3V", "type": "I/O", "structure": "", "onboard": "", "pwm": ["TIM3 CH1 (AF2)", "HRTIM EEV6 (AF3)"], "uart": ["UART7 TX (AF11)"], "spi": ["SPI1 MISO (AF5)", "I2S1 SDI (AF5)", "SPI3 MISO (AF6)", "I2S3 SDI (AF6)", "SPI2 NSS (AF7)", "SPI6 MISO (AF8)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": ["SDMMC2 D3 (AF9)"], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {"0": "NJTRST", "1": "TIM16 BKIN", "2": "TIM3 CH1", "3": "HRTIM EEV6", "5": "SPI1 MISO/ I2S1 SDI", "6": "SPI3 MISO/ I2S3 SDI", "7": "SPI2 NSS/I 2S2 WS", "8": "SPI6 MISO", "9": "SDMMC2 D3", "11": "UART7 TX", "15": "EVENT- OUT"}}}, {"header_pin": 39, "pin_name": "PB7", "details": {"pin": "PB7", "lqfp100": "93", "ft": "5V", "type": "I/O", "structure": "FT fa", "onboard": "", "pwm": ["TIM17 CH1N (AF1)", "TIM4 CH2 (AF2)", "HRTIM EEV9 (AF3)"], "uart": ["USART1 RX (AF7)", "LPUART1 RX (AF8)"], "spi": [], "i2c": ["I2C1 SDA (AF4)", "I2C4 SDA (AF6)"], "can": ["FDCAN2 TXFD MODE (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": ["DCMI VSYNC (AF13)"], "usb": [], "eth": [], "extra": ["PVD IN", "FMC NL (AF12)"], "all_af": {"1": "TIM17 CH1N", "2": "TIM4 CH2", "3": "HRTIM EEV9", "4": "I2C1 SDA", "6": "I2C4 SDA", "7": "USART1 RX", "8": "LPUART1 RX", "9": "FDCAN2 TXFD MODE", "11": "DFSDM1 CKIN5", "12": "FMC NL", "13": "DCMI VSYNC", "15": "EVENT- OUT"}}}, {"header_pin": 40, "pin_name": "PB6", "details": {"pin": "PB6", "lqfp100": "92", "ft": "5V", "type": "I/O", "structure": "FT f", "onboard": "W25Q64 QSPI Flash /CS", "pwm": ["TIM16 CH1N (AF1)", "TIM4 CH1 (AF2)", "HRTIM EEV8 (AF3)"], "uart": ["USART1 TX (AF7)", "LPUART1 TX (AF8)", "UART5 TX (AF14)"], "spi": ["QUADSPI BK1 NCS (AF10)"], "i2c": ["I2C1 SCL (AF4)", "I2C4 SCL (AF6)"], "can": ["FDCAN2 TX (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": ["DCMI D5 (AF13)"], "usb": [], "eth": [], "extra": ["QUADSPI BK1 NCS (AF10)", "FMC SDNE1 (AF12)"], "all_af": {"1": "TIM16 CH1N", "2": "TIM4 CH1", "3": "HRTIM EEV8", "4": "I2C1 SCL", "5": "CEC", "6": "I2C4 SCL", "7": "USART1 TX", "8": "LPUART1 TX", "9": "FDCAN2 TX", "10": "QUADSPI BK1 NCS", "11": "DFSDM1 DATIN5", "12": "FMC SDNE1", "13": "DCMI D5", "14": "UART5 TX", "15": "EVENT- OUT"}}}, {"header_pin": 41, "pin_name": "PB9", "details": {"pin": "PB9", "lqfp100": "96", "ft": "5V", "type": "I/O", "structure": "FT fh", "onboard": "", "pwm": ["TIM17 CH1 (AF1)", "TIM4 CH4 (AF2)"], "uart": ["UART4 TX (AF8)"], "spi": ["SPI2 NSS (AF5)", "I2S2 WS (AF5)"], "i2c": ["I2C1 SDA (AF4)", "I2C4 SDA (AF6)", "I2C4 SMBA (AF11)"], "can": ["FDCAN1 TX (AF9)"], "adc": [], "dac": [], "sdmmc": ["SDMMC1 CDIR (AF7)", "SDMMC2 D5 (AF10)", "SDMMC1 D5 (AF12)"], "dcmi": ["DCMI D7 (AF13)"], "usb": [], "eth": [], "extra": ["LCD B7 (AF14)"], "all_af": {"1": "TIM17 CH1", "2": "TIM4 CH4", "3": "DFSDM1 DATIN7", "4": "I2C1 SDA", "5": "SPI2 NSS/ I2S2 WS", "6": "I2C4 SDA", "7": "SDMMC1 CDIR", "8": "UART4 TX", "9": "FDCAN1 TX", "10": "SDMMC2 D5", "11": "I2C4 SMBA", "12": "SDMMC1 D5", "13": "DCMI D7", "14": "LCD B7", "15": "EVENT- OUT"}}}, {"header_pin": 42, "pin_name": "PB8", "details": {"pin": "PB8", "lqfp100": "95", "ft": "5V", "type": "I/O", "structure": "FT fh", "onboard": "", "pwm": ["TIM16 CH1 (AF1)", "TIM4 CH3 (AF2)"], "uart": ["UART4 RX (AF8)"], "spi": [], "i2c": ["I2C1 SCL (AF4)", "I2C4 SCL (AF6)"], "can": ["FDCAN1 RX (AF9)"], "adc": [], "dac": [], "sdmmc": ["SDMMC1 CKIN (AF7)", "SDMMC2 D4 (AF10)", "SDMMC1 D4 (AF12)"], "dcmi": ["DCMI D6 (AF13)"], "usb": [], "eth": ["ETH MII TXD3 (AF11)"], "extra": ["LCD B6 (AF14)"], "all_af": {"1": "TIM16 CH1", "2": "TIM4 CH3", "3": "DFSDM1 CKIN7", "4": "I2C1 SCL", "6": "I2C4 SCL", "7": "SDMMC1 CKIN", "8": "UART4 RX", "9": "FDCAN1 RX", "10": "SDMMC2 D4", "11": "ETH MII TXD3", "12": "SDMMC1 D4", "13": "DCMI D6", "14": "LCD B6", "15": "EVENT- OUT"}}}, {"header_pin": 43, "pin_name": "PE1", "details": {"pin": "PE1", "lqfp100": "98", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": ["LPTIM1 IN2 (AF1)", "HRTIM SCOUT (AF3)"], "uart": ["UART8 TX (AF8)"], "spi": [], "i2c": [], "can": ["FDCAN1 TXFD MODE (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": ["DCMI D3 (AF13)"], "usb": [], "eth": [], "extra": ["FMC NBL1 (AF12)"], "all_af": {"1": "LPTIM1 IN2", "3": "HRTIM SCOUT", "8": "UART8 TX", "9": "FDCAN1 TXFD MODE", "12": "FMC NBL1", "13": "DCMI D3", "15": "EVENT- OUT"}}}, {"header_pin": 44, "pin_name": "PE0", "details": {"pin": "PE0", "lqfp100": "97", "ft": "5V", "type": "I/O", "structure": "FT h", "onboard": "", "pwm": ["LPTIM1 ETR (AF1)", "HRTIM SCIN (AF3)", "LPTIM2 ETR (AF4)"], "uart": ["UART8 RX (AF8)"], "spi": [], "i2c": [], "can": ["FDCAN1 RXFD MODE (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": ["DCMI D2 (AF13)"], "usb": [], "eth": [], "extra": ["FMC NBL0 (AF12)"], "all_af": {"1": "LPTIM1 ETR", "2": "TIM4 ETR", "3": "HRTIM SCIN", "4": "LPTIM2 ETR", "8": "UART8 RX", "9": "FDCAN1 RXFD MODE", "10": "SAI2 MCLK A", "12": "FMC NBL0", "13": "DCMI D2", "15": "EVENT- OUT"}}}], "J4_TFT_HEADER": [{"header_pin": 1, "pin_name": "3V3", "header_label": "+3.3V", "description": "Power Supply 3.3V", "details": {"pin": "3V3", "lqfp100": "-", "ft": "N/A", "type": "POWER", "onboard": "Power Rail", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 2, "pin_name": "GND", "header_label": "GND", "description": "Ground", "details": {"pin": "GND", "lqfp100": "-", "ft": "N/A", "type": "GND", "onboard": "Ground Plane", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 3, "pin_name": "PB15", "header_label": "SDI / MOSI", "description": "SPI2_MOSI / Display Data In", "details": {"pin": "PB15", "lqfp100": "54", "ft": "5V", "type": "I/O", "structure": "FT u", "onboard": "TFT LCD J4-3 (SPI2_MOSI)", "pwm": ["TIM1 CH3N (AF1)", "TIM12 CH2 (AF2)", "TIM8 CH3N (AF3)"], "uart": ["USART1 RX (AF4)", "UART4 CTS (AF8)"], "spi": ["SPI2 MOSI (AF5)", "I2S2 SDO (AF5)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": ["SDMMC2 D1 (AF9)"], "dcmi": [], "usb": ["OTG HS DP (AF12)"], "eth": [], "extra": [], "all_af": {"0": "RTC REFIN", "1": "TIM1 CH3N", "2": "TIM12 CH2", "3": "TIM8 CH3N", "4": "USART1 RX", "5": "SPI2 MOSI/ I2S2 SDO", "6": "DFSDM1 CKIN2", "8": "UART4 CTS", "9": "SDMMC2 D1", "12": "OTG HS DP", "15": "EVENT- OUT"}}}, {"header_pin": 4, "pin_name": "PB13", "header_label": "SCL / SCK", "description": "SPI2_SCK / Serial Clock", "details": {"pin": "PB13", "lqfp100": "52", "ft": "5V", "type": "I/O", "structure": "FT u", "onboard": "TFT LCD J4-4 (SPI2_SCK)", "pwm": ["TIM1 CH1N (AF1)", "LPTIM2 OUT (AF3)"], "uart": ["USART3 CTS (AF7)", "USART3 NSS (AF7)", "UART5 TX (AF14)"], "spi": ["SPI2 SCK (AF5)", "I2S2 CK (AF5)"], "i2c": [], "can": ["FDCAN2 TX (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG HS ULPI D6 (AF10)"], "eth": ["ETH MII TXD1 (AF11)", "ETH RMII TXD1 (AF11)"], "extra": ["OTG HS   VBUS"], "all_af": {"1": "TIM1 CH1N", "3": "LPTIM2 OUT", "5": "SPI2 SCK/ I2S2 CK", "6": "DFSDM1 CKIN1", "7": "USART3 CTS/ USART3 NSS", "9": "FDCAN2 TX", "10": "OTG HS ULPI D6", "11": "ETH MII TXD1/ETH RMII TXD1", "14": "UART5 TX", "15": "EVENT- OUT"}}}, {"header_pin": 5, "pin_name": "PB12", "header_label": "CS", "description": "SPI2_NSS / Chip Select (Active Low)", "details": {"pin": "PB12", "lqfp100": "51", "ft": "5V", "type": "I/O", "structure": "FT u", "onboard": "TFT LCD J4-5 (SPI2_NSS / CS)", "pwm": [], "uart": ["USART3 CK (AF7)", "UART5 RX (AF14)"], "spi": ["SPI2 NSS (AF5)", "I2S2 WS (AF5)"], "i2c": ["I2C2 SMBA (AF4)"], "can": ["FDCAN2 RX (AF9)"], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG HS ULPI D5 (AF10)", "OTG HS ID (AF12)"], "eth": ["ETH MII TXD0 (AF11)", "ETH RMII TXD0 (AF11)"], "extra": [], "all_af": {"1": "TIM1 BKIN", "4": "I2C2 SMBA", "5": "SPI2 NSS/ I2S2 WS", "6": "DFSDM1 DATIN1", "7": "USART3 CK", "9": "FDCAN2 RX", "10": "OTG HS ULPI D5", "11": "ETH MII TXD0/ETH RMII TXD0", "12": "OTG HS ID", "13": "TIM1 BKIN COMP12", "14": "UART5 RX", "15": "EVENT- OUT"}}}, {"header_pin": 6, "pin_name": "PB14", "header_label": "SDO / MISO", "description": "SPI2_MISO / Display Data Out", "details": {"pin": "PB14", "lqfp100": "53", "ft": "5V", "type": "I/O", "structure": "FT u", "onboard": "TFT LCD J4-6 (SPI2_MISO)", "pwm": ["TIM1 CH2N (AF1)", "TIM12 CH1 (AF2)", "TIM8 CH2N (AF3)"], "uart": ["USART1 TX (AF4)", "USART3 RTS (AF7)", "USART3 DE (AF7)", "UART4 RTS (AF8)", "UART4 DE (AF8)"], "spi": ["SPI2 MISO (AF5)", "I2S2 SDI (AF5)"], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": ["SDMMC2 D0 (AF9)"], "dcmi": [], "usb": ["OTG HS DM (AF12)"], "eth": [], "extra": [], "all_af": {"1": "TIM1 CH2N", "2": "TIM12 CH1", "3": "TIM8 CH2N", "4": "USART1 TX", "5": "SPI2 MISO/ I2S2 SDI", "6": "DFSDM1 DATIN2", "7": "USART3 RTS/ USART3 DE", "8": "UART4 RTS/ UART4 DE", "9": "SDMMC2 D0", "12": "OTG HS DM", "15": "EVENT- OUT"}}}, {"header_pin": 7, "pin_name": "PB1", "header_label": "RS / DC", "description": "Data (High) / Command (Low) Select", "details": {"pin": "PB1", "lqfp100": "35", "ft": "3.3V", "type": "I/O", "structure": "TT u", "onboard": "TFT LCD J4-7 (RS / DC)", "pwm": ["TIM1 CH3N (AF1)", "TIM3 CH4 (AF2)", "TIM8 CH3N (AF3)"], "uart": [], "spi": [], "i2c": [], "can": [], "adc": ["ADC12 INP5"], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG HS ULPI D2 (AF10)"], "eth": ["ETH MII RXD3 (AF11)"], "extra": ["COMP1 INM", "LCD R6 (AF9)", "LCD G0 (AF14)"], "all_af": {"1": "TIM1 CH3N", "2": "TIM3 CH4", "3": "TIM8 CH3N", "6": "DFSDM1 DATIN1", "9": "LCD R6", "10": "OTG HS ULPI D2", "11": "ETH MII RXD3", "14": "LCD G0", "15": "EVENT- OUT"}}}, {"header_pin": 8, "pin_name": "PB0", "header_label": "BLK / LED", "description": "Backlight Control (TIM1_CH2N / TIM3_CH3 PWM)", "details": {"pin": "PB0", "lqfp100": "34", "ft": "5V", "type": "I/O", "structure": "FT a", "onboard": "TFT LCD J4-8 (BLK / Backlight PWM)", "pwm": ["TIM1 CH2N (AF1)", "TIM3 CH3 (AF2)", "TIM8 CH2N (AF3)"], "uart": ["UART4 CTS (AF8)"], "spi": [], "i2c": [], "can": [], "adc": ["ADC12 INN5", "ADC12 INP9"], "dac": [], "sdmmc": [], "dcmi": [], "usb": ["OTG HS ULPI D1 (AF10)"], "eth": ["ETH MII RXD2 (AF11)"], "extra": ["OPAMP1 VINP", "COMP1 INP", "LCD R3 (AF9)", "LCD G1 (AF14)"], "all_af": {"1": "TIM1 CH2N", "2": "TIM3 CH3", "3": "TIM8 CH2N", "6": "DFSDM1 CKOUT", "8": "UART4 CTS", "9": "LCD R3", "10": "OTG HS ULPI D1", "11": "ETH MII RXD2", "14": "LCD G1", "15": "EVENT- OUT"}}}], "J1_SWD_HEADER": [{"header_pin": 1, "pin_name": "BOOT0", "header_label": "BT0", "description": "Boot Mode Select (Default Pulled Down via R7 to GND)", "details": {"pin": "BOOT0", "lqfp100": "-", "ft": "N/A", "type": "SPECIAL", "onboard": "", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 2, "pin_name": "3V3", "header_label": "3V3", "description": "+3.3V VDD Target Reference", "details": {"pin": "3V3", "lqfp100": "-", "ft": "N/A", "type": "POWER", "onboard": "Power Rail", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 3, "pin_name": "GND", "header_label": "GND", "description": "Ground", "details": {"pin": "GND", "lqfp100": "-", "ft": "N/A", "type": "GND", "onboard": "Ground Plane", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {}}}, {"header_pin": 4, "pin_name": "PA13", "header_label": "SWDIO", "description": "SWD Data I/O (JTMS-SWDIO)", "details": {"pin": "PA13", "lqfp100": "", "ft": "3.3V", "type": "I/O", "structure": "", "onboard": "SWD SWDIO (Debug Port J1)", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {"0": "JTMS- SWDIO", "15": "EVENT- OUT"}}}, {"header_pin": 5, "pin_name": "PA14", "header_label": "SWCLK", "description": "SWD Clock (JTCK-SWCLK)", "details": {"pin": "PA14", "lqfp100": "", "ft": "3.3V", "type": "I/O", "structure": "", "onboard": "SWD SWCLK (Debug Port J1)", "pwm": [], "uart": [], "spi": [], "i2c": [], "can": [], "adc": [], "dac": [], "sdmmc": [], "dcmi": [], "usb": [], "eth": [], "extra": [], "all_af": {"0": "JTCK- SWCLK", "15": "EVENT- OUT"}}}]};
+
+    function createPinCard(item, headerName) {
+      const pnum = item.header_pin;
+      const pname = item.pin_name;
+      const det = item.details;
+      const ptype = det.type || 'I/O';
+      const ft = det.ft || '3.3V';
+      const onboard = det.onboard || '';
+      
+      const card = document.createElement('div');
+      card.className = 'pin-card';
+      card.dataset.pin = pname;
+      card.dataset.num = pnum;
+      card.dataset.header = headerName;
+      card.onclick = () => openModal(item, headerName);
+      
+      // Determine categories for filtering
+      const cats = [];
+      if (ptype === 'POWER' || ptype === 'GND') cats.push('pwr');
+      if (det.pwm && det.pwm.length) cats.push('pwm');
+      if (det.adc && det.adc.length) cats.push('adc');
+      if (det.dac && det.dac.length) cats.push('dac');
+      if (det.uart && det.uart.length) cats.push('uart');
+      if (det.spi && det.spi.length) cats.push('spi');
+      if (det.i2c && det.i2c.length) cats.push('i2c');
+      if (det.can && det.can.length) cats.push('can');
+      if (onboard) cats.push('onboard');
+      card.dataset.categories = cats.join(' ');
+      
+      let ftBadge = '';
+      if (ptype === 'I/O') {
+        ftBadge = `<span class="voltage-badge ${ft === '5V' ? 'ft-5v' : 'ft-3v'}">${ft}</span>`;
+      }
+      
+      let tagsHtml = '';
+      if (ptype === 'POWER') {
+        tagsHtml += `<span class="tag tag-pwr">${pname}</span>`;
+      } else if (ptype === 'GND') {
+        tagsHtml += `<span class="tag tag-gnd">GND</span>`;
+      }
+      
+      if (onboard) {
+        tagsHtml += `<span class="tag tag-onboard">${onboard.split('(')[0].trim()}</span>`;
+      }
+      if (det.adc && det.adc.length) {
+        tagsHtml += `<span class="tag tag-adc">${det.adc[0].split(',')[0].trim()}</span>`;
+      }
+      if (det.dac && det.dac.length) {
+        tagsHtml += `<span class="tag tag-dac">${det.dac[0]}</span>`;
+      }
+      if (det.pwm && det.pwm.length) {
+        det.pwm.slice(0, 2).forEach(p => {
+          tagsHtml += `<span class="tag tag-pwm">${p.split('(')[0].trim()}</span>`;
+        });
+      }
+      if (det.uart && det.uart.length) {
+        tagsHtml += `<span class="tag tag-uart">${det.uart[0].split('(')[0].trim()}</span>`;
+      }
+      if (det.spi && det.spi.length) {
+        tagsHtml += `<span class="tag tag-spi">${det.spi[0].split('(')[0].trim()}</span>`;
+      }
+      if (det.i2c && det.i2c.length) {
+        tagsHtml += `<span class="tag tag-i2c">${det.i2c[0].split('(')[0].trim()}</span>`;
+      }
+      if (det.can && det.can.length) {
+        tagsHtml += `<span class="tag tag-can">${det.can[0].split('(')[0].trim()}</span>`;
+      }
+      if (det.sdmmc && det.sdmmc.length) {
+        tagsHtml += `<span class="tag tag-high">${det.sdmmc[0].split('(')[0].trim()}</span>`;
+      }
+      if (det.dcmi && det.dcmi.length) {
+        tagsHtml += `<span class="tag tag-high">${det.dcmi[0].split('(')[0].trim()}</span>`;
+      }
+      if (det.usb && det.usb.length) {
+        tagsHtml += `<span class="tag tag-high">${det.usb[0].split('(')[0].trim()}</span>`;
+      }
+      
+      card.innerHTML = `
+        <div class="pin-card-header">
+          <div>
+            <span class="pin-num">${headerName}-${pnum}</span>
+            <span class="pin-id" style="margin-left:6px;">${pname}</span>
+          </div>
+          <div>${ftBadge}</div>
+        </div>
+        <div class="badge-container">${tagsHtml}</div>
+      `;
+      
+      return card;
+    }
+
+    // Populate J3 and J2
+    const j3Grid = document.getElementById('j3-grid');
+    db.J3_LEFT_HEADER.forEach(item => j3Grid.appendChild(createPinCard(item, 'J3')));
+
+    const j2Grid = document.getElementById('j2-grid');
+    db.J2_RIGHT_HEADER.forEach(item => j2Grid.appendChild(createPinCard(item, 'J2')));
+
+    // Populate J4 (TFT)
+    const j4Grid = document.getElementById('j4-grid');
+    db.J4_TFT_HEADER.forEach(item => {
+      const card = createPinCard(item, 'J4');
+      j4Grid.appendChild(card);
+    });
+
+    // Populate J1 (SWD)
+    const j1Grid = document.getElementById('j1-grid');
+    db.J1_SWD_HEADER.forEach(item => {
+      const card = createPinCard(item, 'J1');
+      j1Grid.appendChild(card);
+    });
+
+    // Tab Navigation
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.tab;
+        document.getElementById('j3-grid').style.display = tab === 'j3' ? 'grid' : 'none';
+        document.getElementById('j2-grid').style.display = tab === 'j2' ? 'grid' : 'none';
+        document.getElementById('j4-grid').style.display = tab === 'j4' ? 'grid' : 'none';
+        document.getElementById('j1-grid').style.display = tab === 'j1' ? 'grid' : 'none';
+        document.getElementById('diagram-view').style.display = tab === 'diagram' ? 'block' : 'none';
+      };
+    });
+
+    // Search and Filter logic
+    const searchInput = document.getElementById('searchInput');
+    let currentFilter = 'all';
+
+    function applyFilterAndSearch() {
+      const query = searchInput.value.toLowerCase().trim();
+      document.querySelectorAll('.pin-card').forEach(card => {
+        const text = card.textContent.toLowerCase();
+        const cats = card.dataset.categories || '';
+        const matchesFilter = currentFilter === 'all' || cats.includes(currentFilter);
+        const matchesSearch = !query || text.includes(query);
+        if (matchesFilter && matchesSearch) {
+          card.classList.remove('hidden');
+          if (query && text.includes(query)) {
+            card.classList.add('highlight');
+          } else {
+            card.classList.remove('highlight');
+          }
+        } else {
+          card.classList.add('hidden');
+          card.classList.remove('highlight');
+        }
+      });
+    }
+
+    searchInput.addEventListener('input', applyFilterAndSearch);
+
+    document.querySelectorAll('.pill').forEach(pill => {
+      pill.onclick = () => {
+        document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        currentFilter = pill.dataset.filter;
+        applyFilterAndSearch();
+      };
+    });
+
+    // Modal Details View
+    const modal = document.getElementById('pinModal');
+    function openModal(item, headerName) {
+      const pnum = item.header_pin;
+      const pname = item.pin_name;
+      const det = item.details;
+      
+      document.getElementById('modalPinTitle').textContent = `${headerName} Pin ${pnum}: ${pname}`;
+      document.getElementById('modalPinSubtitle').textContent = `LQFP100 Pin: ${det.lqfp100 || 'N/A'} • Voltage Tolerance: ${det.ft || 'N/A'} • Structure: ${det.structure || 'N/A'}`;
+      
+      let badgesHtml = '';
+      if (det.onboard) badgesHtml += `<span class="tag tag-onboard">Onboard: ${det.onboard}</span>`;
+      if (det.ft) badgesHtml += `<span class="tag ${det.ft === '5V' ? 'ft-5v' : 'ft-3v'}">${det.ft} Tolerant</span>`;
+      document.getElementById('modalBadges').innerHTML = badgesHtml;
+      
+      const tbody = document.getElementById('modalAfBody');
+      tbody.innerHTML = '';
+      
+      const afs = det.all_af || {};
+      const afKeys = Object.keys(afs);
+      if (afKeys.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="2" style="color:var(--muted); text-align:center;">No Alternate Functions (Dedicated Power/GND/System pin)</td></tr>';
+      } else {
+        for (let i = 0; i <= 15; i++) {
+          if (afs[i]) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td><strong>AF${i}</strong></td><td>${afs[i]}</td>`;
+            tbody.appendChild(tr);
+          }
+        }
+      }
+      
+      // Code snippet
+      if (pname.startsWith('P')) {
+        const port = pname.substring(1, 2);
+        const pinIdx = pname.substring(2);
+        document.getElementById('modalCodeSnippet').textContent = 
+`// STM32 HAL / CMSIS Pin Mapping
+#define BOARD_${headerName}_P${pnum}_PIN        GPIO_PIN_${pinIdx}
+#define BOARD_${headerName}_P${pnum}_PORT       GPIO${port}
+#define BOARD_${headerName}_P${pnum}_CLK_ENABLE() __HAL_RCC_GPIO${port}_CLK_ENABLE()`;
+      } else {
+        document.getElementById('modalCodeSnippet').textContent = `// Dedicated Rail: ${pname}`;
+      }
+      
+      modal.classList.add('active');
+    }
+
+    function closeModal() {
+      modal.classList.remove('active');
+    }
+
+    window.onclick = (e) => {
+      if (e.target === modal) closeModal();
+    };
+  </script>
+</body>
+</html>

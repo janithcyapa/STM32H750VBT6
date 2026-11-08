@@ -5,7 +5,13 @@ This directory contains the complete hardware specifications, schematics, datash
 ## Directory Layout
 
 - **[`PINOUT.md`](./PINOUT.md)**: Authoritative pinout reference table (LEDs, buttons, QSPI flash, SD card, TFT header, and expansion headers).
-- **`schematics/`**: Board schematic (`original-schematic-STM32H7XX-M.pdf`).
+- **[`PINOUT_CAPABILITIES.md`](./PINOUT_CAPABILITIES.md)**: Exhaustive pin capability matrix, alternate function mapping (PWM, UART, SPI, I2C, CAN, ADC/DAC), and conflict analysis.
+- **`schematics/`**:
+  - `schematic-STM32H7XX-M-en.pdf`: Complete schematic fully translated to English.
+  - `pinout-diagram.svg`: Full-color vector graphical pinout diagram.
+  - `pinout-diagram.png`: High-resolution graphic pinout diagram (7292 × 5730).
+  - `pinout_viewer.html`: Interactive in-browser pinout explorer and search tool.
+  - `original-schematic-STM32H7XX-M.pdf`: Original board schematic.
 - **`datasheets/`**:
   - `STM32H750VB-Datasheet.pdf`: Official MCU electrical, pin, and package specifications (ST).
   - `PM0253-CortexM7-Programming-Manual.pdf`: Arm Cortex-M7 core, FPU, MPU, and NVIC programming guide (ST).

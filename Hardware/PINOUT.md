@@ -2,6 +2,13 @@
 
 This document serves as the **Hardware Source of Truth** for the DevEBox STM32H7XX-M board equipped with the STM32H750VBT6 microcontroller.
 
+For complete alternate function mapping (PWM, UART, SPI, I2C, CAN, ADC, DAC, SDMMC, DCMI) and visual graphical diagrams, see:
+- **[Full Pin Capabilities & Alternate Function Matrix](./PINOUT_CAPABILITIES.md)**
+- **[Visual Vector Pinout Diagram (SVG)](./schematics/pinout-diagram.svg)**
+- **[High-Resolution Pinout Graphic (PNG)](./schematics/pinout-diagram.png)**
+- **[Interactive Browser Pinout Viewer (HTML)](./schematics/pinout_viewer.html)**
+- **[English Translated Schematic PDF](./schematics/schematic-STM32H7XX-M-en.pdf)**
+
 ---
 
 ## 1. Board Summary

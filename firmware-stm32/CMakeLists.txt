@@ -33,12 +33,15 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   # FreeRTOS Includes
   Middlewares/FreeRTOS-Kernel/include
   Middlewares/FreeRTOS-Kernel/portable/GCC/ARM_CM7/r0p1
+  # USB Middleware Includes
+  Middlewares/ST/STM32_USB_Device_Library/Core/Inc
+  Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
 )
 
 # Add the HAL C source files to the build
 target_sources(${PROJECT_NAME} PRIVATE
   Src/bsp_board.c
-  Src/bsp_qspi.c 
+  Src/bsp_qspi.c
   Src/system_stm32h7xx.c
   # HAL Sources
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
@@ -48,7 +51,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_gpio.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pwr_ex.c
-  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_qspi.c 
+  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_qspi.c
   # FreeRTOS Core Sources
   Middlewares/FreeRTOS-Kernel/tasks.c
   Middlewares/FreeRTOS-Kernel/queue.c
@@ -59,6 +62,20 @@ target_sources(${PROJECT_NAME} PRIVATE
   # FreeRTOS Memory Manager (heap_4) & Cortex-M7 Port
   Middlewares/FreeRTOS-Kernel/portable/MemMang/heap_4.c
   Middlewares/FreeRTOS-Kernel/portable/GCC/ARM_CM7/r0p1/port.c
+  # USB App Sources
+  Src/usb_device.c
+  Src/usbd_conf.c
+  Src/usbd_desc.c
+  Src/usbd_cdc_if.c
+  # ST HAL USB & PCD Drivers
+  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd.c
+  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd_ex.c
+  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_ll_usb.c
+  # ST USB Middleware Core & CDC
+  Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c
+  Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c
+  Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c
+  Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c
 )
 
 # Post-build step to produce flashable artifacts and view memory usage
