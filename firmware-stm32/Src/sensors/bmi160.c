@@ -1,4 +1,4 @@
-#include "bsp_bmi160.h"
+#include "bmi160.h"
 #include <string.h>
 
 static SPI_HandleTypeDef hspi1 = {0};
@@ -45,7 +45,7 @@ static void BMI160_ReadMulti(uint8_t start_reg, uint8_t *buf, uint16_t len) {
     memcpy(buf, &rx[1], len);
 }
 
-bool BSP_BMI160_Init(void) {
+bool BMI160_Init(void) {
     // 1. Configure Kernel Clock for SPI1/2/3
     // By default on STM32H7, SPI123 clock source is PLL1 (which is uninitialized).
     // We explicitly route HSI (64 MHz) via CKPER as the SPI123 kernel clock.
@@ -92,7 +92,7 @@ bool BSP_BMI160_Init(void) {
     hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;   // Mode 0 (CPOL=0)
     hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;       // Mode 0 (CPHA=0)
     hspi1.Init.NSS = SPI_NSS_SOFT;
-    hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64; // 64 MHz / 64 = 1 MHz (very safe for breadboard)
+    hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_64; // 64 MHz / 64 = 1 MHz (safe for breadboard)
     hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
     hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
     hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -144,15 +144,15 @@ bool BSP_BMI160_Init(void) {
     return true;
 }
 
-uint8_t BSP_BMI160_ReadChipID(void) {
+uint8_t BMI160_ReadChipID(void) {
     return BMI160_ReadReg(BMI160_REG_CHIP_ID);
 }
 
-uint8_t BSP_BMI160_GetLastHALStatus(void) {
+uint8_t BMI160_GetLastHALStatus(void) {
     return last_hal_status;
 }
 
-bool BSP_BMI160_ReadRaw(BMI160_RawData_t *accel, BMI160_RawData_t *gyro) {
+bool BMI160_ReadRaw(BMI160_RawData_t *accel, BMI160_RawData_t *gyro) {
     uint8_t raw[12] = {0};
 
     BMI160_ReadMulti(BMI160_REG_DATA_GYRO_X, raw, 12);

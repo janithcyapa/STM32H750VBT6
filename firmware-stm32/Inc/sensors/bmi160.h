@@ -1,5 +1,5 @@
-#ifndef BSP_BMI160_H
-#define BSP_BMI160_H
+#ifndef BMI160_H
+#define BMI160_H
 
 #include "stm32h7xx_hal.h"
 #include <stdbool.h>
@@ -29,10 +29,10 @@ typedef struct {
     int16_t z;
 } BMI160_RawData_t;
 
-// API
-bool BSP_BMI160_Init(void);
-uint8_t BSP_BMI160_ReadChipID(void);
-bool BSP_BMI160_ReadRaw(BMI160_RawData_t *accel, BMI160_RawData_t *gyro);
+// Sensor Driver API
+bool BMI160_Init(void);
+uint8_t BMI160_ReadChipID(void);
+uint8_t BMI160_GetLastHALStatus(void);
+bool BMI160_ReadRaw(BMI160_RawData_t *accel, BMI160_RawData_t *gyro);
 
-#endif // BSP_BMI160_H
-
+#endif // BMI160_H

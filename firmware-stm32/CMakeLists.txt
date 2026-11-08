@@ -26,6 +26,10 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 # Modern target-scoped includes
 target_include_directories(${PROJECT_NAME} PRIVATE
   Inc
+  Inc/core
+  Inc/bsp
+  Inc/sensors
+  Inc/usb
   # HAL Includes
   Drivers/CMSIS/Core/Include
   Drivers/CMSIS/Device/ST/STM32H7xx/Include
@@ -40,10 +44,10 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 # Add the HAL C source files to the build
 target_sources(${PROJECT_NAME} PRIVATE
-  Src/bsp_board.c
-  Src/bsp_qspi.c
-  Src/bsp_bmi160.c
-  Src/system_stm32h7xx.c
+  Src/core/system_stm32h7xx.c
+  Src/bsp/bsp_board.c
+  Src/bsp/bsp_qspi.c
+  Src/sensors/bmi160.c
   # HAL Sources
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c
@@ -66,10 +70,10 @@ target_sources(${PROJECT_NAME} PRIVATE
   Middlewares/FreeRTOS-Kernel/portable/MemMang/heap_4.c
   Middlewares/FreeRTOS-Kernel/portable/GCC/ARM_CM7/r0p1/port.c
   # USB App Sources
-  Src/usb_device.c
-  Src/usbd_conf.c
-  Src/usbd_desc.c
-  Src/usbd_cdc_if.c
+  Src/usb/usb_device.c
+  Src/usb/usbd_conf.c
+  Src/usb/usbd_desc.c
+  Src/usb/usbd_cdc_if.c
   # ST HAL USB & PCD Drivers
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_pcd_ex.c

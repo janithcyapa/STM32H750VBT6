@@ -1,7 +1,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "bsp_board.h"
-#include "bsp_bmi160.h"
+#include "bmi160.h"
 #include "usb_device.h"
 #include "usbd_cdc_if.h"
 #include <stdio.h>
@@ -25,20 +25,24 @@ static void Task_IMU_Stream(void *pvParameters) {
   vTaskDelay(pdMS_TO_TICKS(1500));
 
   // Initialize BMI160 over SPI1
-  imu_ready = BSP_BMI160_Init();
-  uint8_t chip_id = BSP_BMI160_ReadChipID();
+  imu_ready = BMI160_Init();
+  uint8_t chip_id = BMI160_ReadChipID();
+  uint8_t hal_stat = BMI160_GetLastHALStatus();
 
   if (imu_ready) {
     int len = snprintf(msg, sizeof(msg),
                        "\r\n========================================\r\n"
                        "[BMI160] Online! Chip ID: 0x%02X (Match 0xD1)\r\n"
                        "Streaming Accel (+/-4g) and Gyro (+/-2000dps)...\r\n"
-                       "========================================\r\n", chip_id);
+                       "========================================\r\n",
+                       chip_id);
     CDC_Transmit_FS((uint8_t *)msg, len);
   } else {
-    int len = snprintf(msg, sizeof(msg),
-                       "\r\n[BMI160 ERROR] Init FAILED! Read ID: 0x%02X (Expected 0xD1)\r\n"
-                       "Check SPI wiring: PA4(CS), PA5(SCK), PA6(MISO), PA7(MOSI)\r\n", chip_id);
+    int len = snprintf(
+        msg, sizeof(msg),
+        "\r\n[BMI160 ERROR] Init FAILED! Read ID: 0x%02X (Expected 0xD1, HAL Status: %u)\r\n"
+        "Check SPI wiring: PA4(CS), PA5(SCK), PA6(MISO/SAO), PA7(MOSI/SDA)\r\n",
+        chip_id, hal_stat);
     CDC_Transmit_FS((uint8_t *)msg, len);
   }
 
@@ -46,24 +50,25 @@ static void Task_IMU_Stream(void *pvParameters) {
     BSP_LED_Toggle();
 
     if (imu_ready) {
-      BSP_BMI160_ReadRaw(&accel, &gyro);
+      BMI160_ReadRaw(&accel, &gyro);
 
       // Convert raw counts to approximate physical units:
       // +/-4g range: 8192 LSB/g -> (accel * 1000) / 8192 gives mg
       // +/-2000dps range: 16.4 LSB/(deg/s)
       int len = snprintf(msg, sizeof(msg),
-                         "[IMU] A:[%6d %6d %6d] | G:[%6d %6d %6d]\r\n",
-                         accel.x, accel.y, accel.z,
-                         gyro.x, gyro.y, gyro.z);
+                         "[IMU] A:[%6d %6d %6d] | G:[%6d %6d %6d]\r\n", accel.x,
+                         accel.y, accel.z, gyro.x, gyro.y, gyro.z);
       CDC_Transmit_FS((uint8_t *)msg, len);
     } else {
       // Retry init periodically if failed
-      chip_id = BSP_BMI160_ReadChipID();
-      int len = snprintf(msg, sizeof(msg),
-                         "[BMI160] Retrying... ID read: 0x%02X (Expected: 0xD1)\r\n", chip_id);
+      chip_id = BMI160_ReadChipID();
+      hal_stat = BMI160_GetLastHALStatus();
+      int len = snprintf(
+          msg, sizeof(msg),
+          "[BMI160] Retrying... ID read: 0x%02X (Expected: 0xD1, HAL: %u)\r\n", chip_id, hal_stat);
       CDC_Transmit_FS((uint8_t *)msg, len);
       if (chip_id == 0xD1) {
-        imu_ready = BSP_BMI160_Init();
+        imu_ready = BMI160_Init();
       }
     }
 
