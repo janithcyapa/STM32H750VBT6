@@ -4,9 +4,14 @@ This directory contains the complete hardware specifications, schematics, datash
 
 ## Directory Layout
 
+- **[`FLIGHT_ROVER_CONTROLLER_ARCHITECTURE.md`](./FLIGHT_ROVER_CONTROLLER_ARCHITECTURE.md)**: **Master Blueprint**: Complete circuit diagrams, vehicle scaling (Quad, Hexa, Rover), wiring schematics, and engineering justifications for PX4 / ROS2 integration.
 - **[`PINOUT.md`](./PINOUT.md)**: Authoritative pinout reference table (LEDs, buttons, QSPI flash, SD card, TFT header, and expansion headers).
 - **[`PINOUT_CAPABILITIES.md`](./PINOUT_CAPABILITIES.md)**: Exhaustive pin capability matrix, alternate function mapping (PWM, UART, SPI, I2C, CAN, ADC/DAC), and conflict analysis.
 - **`schematics/`**:
+  - `dotboard_circuit.drawio` / `dotboard_circuit.xml`: **Interactive Perfboard / Dot-Board Hardware Prototype** (24 cols A–X, 18 rows 01–18, Bank 1, Bank 2, TFT J4, external components & routed connection wires).
+  - `generate_drawio.py`: Python generator for the Draw.io perfboard prototyping schematic.
+  - `flight_rover_schematic.svg`: High-resolution vector circuit schematic (Dual Mag, 8 Motor outputs, RPi, ESP32, ELRS).
+  - `flight_rover_viewer.html`: Interactive pan/zoom circuit schematic viewer and master pin assignment table.
   - `schematic-STM32H7XX-M-en.pdf`: Complete schematic fully translated to English.
   - `pinout-diagram.svg`: Full-color vector graphical pinout diagram.
   - `pinout-diagram.png`: High-resolution graphic pinout diagram (7292 × 5730).

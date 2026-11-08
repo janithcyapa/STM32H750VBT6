@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevEBox STM32H750VBT6 Universal Flight &amp; Rover Controller Blueprint</title>
+  <style>
+    :root {
+      --bg: #070A12;
+      --card-bg: #101726;
+      --card-border: #1E293B;
+      --text: #F8FAFC;
+      --muted: #94A3B8;
+      --pwr: #EF4444;
+      --gnd: #475569;
+      --spi: #3B82F6;
+      --i2c: #8B5CF6;
+      --uart: #06B6D4;
+      --pwm: #F97316;
+      --adc: #10B981;
+      --exti: #F43F5E;
+      --qspi: #EC4899;
+      --usb: #6366F1;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 24px;
+    }
+    .header {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .header h1 { font-size: 26px; font-weight: 800; color: #fff; margin-bottom: 8px; letter-spacing: -0.5px; }
+    .header p { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+
+    .vehicle-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .v-pill {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid #334155;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #E2E8F0;
+    }
+    .v-pill span { color: var(--pwm); }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding-top: 12px;
+      border-top: 1px solid #1E293B;
+    }
+    .btn {
+      background: #1E293B;
+      color: #E2E8F0;
+      border: 1px solid #334155;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn:hover { background: #334155; border-color: #475569; }
+    .btn.active {
+      background: #2563EB;
+      border-color: #3B82F6;
+      color: #fff;
+      box-shadow: 0 0 12px rgba(37,99,235,0.4);
+    }
+
+    .diagram-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      position: relative;
+      overflow: hidden;
+    }
+    .diagram-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 0 8px;
+    }
+    .diagram-controls span { font-size: 13px; font-weight: 700; color: var(--muted); }
+    .diagram-viewport {
+      width: 100%;
+      height: 720px;
+      overflow: auto;
+      border-radius: 10px;
+      background: #080C15;
+      border: 1px solid #1E293B;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      cursor: grab;
+    }
+    .diagram-viewport:active { cursor: grabbing; }
+    .diagram-viewport object, .diagram-viewport img {
+      max-width: none;
+      height: 100%;
+      transition: transform 0.2s ease;
+    }
+
+    .table-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .table-card h2 { font-size: 20px; font-weight: 800; margin-bottom: 16px; color: #fff; }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      background: #162032;
+      color: #94A3B8;
+      font-weight: 700;
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 2px solid #334155;
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #1E293B;
+      color: #E2E8F0;
+    }
+    tr:hover td { background: rgba(30, 41, 59, 0.4); }
+    
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .badge-spi { background: rgba(59, 130, 246, 0.15); color: #60A5FA; border: 1px solid #3B82F6; }
+    .badge-i2c { background: rgba(139, 92, 246, 0.15); color: #A78BFA; border: 1px solid #8B5CF6; }
+    .badge-uart { background: rgba(6, 182, 212, 0.15); color: #22D3EE; border: 1px solid #06B6D4; }
+    .badge-pwm { background: rgba(249, 115, 22, 0.15); color: #FB923C; border: 1px solid #F97316; }
+    .badge-adc { background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1px solid #10B981; }
+    .badge-exti { background: rgba(244, 63, 94, 0.15); color: #FB7185; border: 1px solid #F43F5E; }
+    .badge-pwr { background: rgba(239, 68, 68, 0.15); color: #F87171; border: 1px solid #EF4444; }
+    .badge-gnd { background: rgba(71, 85, 105, 0.2); color: #94A3B8; border: 1px solid #64748B; }
+  </style>
+</head>
+<body>
+
+  <!-- Header Card -->
+  <div class="header">
+    <h1>DevEBox STM32H750VBT6 Universal Flight &amp; Rover Controller</h1>
+    <p>Complete Circuit Architecture • PX4 Autopilot / Apache NuttX Ready • Scalable from 4-Motor Quadcopters to 8-Wheel Robotic Rovers</p>
+    
+    <div class="vehicle-pills">
+      <div class="v-pill">Quad / X8 Drones: <span>Motors 1–4 (TIM1)</span></div>
+      <div class="v-pill">Hexacopter: <span>Motors 1–6 (TIM1 + TIM3)</span></div>
+      <div class="v-pill">2-Wheel Rover: <span>2 Drive + 2 Aux Steering</span></div>
+      <div class="v-pill">8-Wheel Rover: <span>Full 8-Channel Independent Drive</span></div>
+      <div class="v-pill">Companion: <span>Raspberry Pi @ 921600 Baud</span></div>
+      <div class="v-pill">Storage: <span>8MB W25Q64JV QSPI (0x90000000)</span></div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn active" onclick="zoomReset()">Reset Zoom</button>
+      <button class="btn" onclick="zoomIn()">Zoom In (+)</button>
+      <button class="btn" onclick="zoomOut()">Zoom Out (-)</button>
+      <a href="flight_rover_schematic.svg" target="_blank" class="btn" style="text-decoration:none;">Open Full SVG (3800x2800)</a>
+      <a href="../FLIGHT_ROVER_CONTROLLER_ARCHITECTURE.md" class="btn" style="text-decoration:none;">Read Architecture Report</a>
+      <a href="pinout_viewer.html" class="btn" style="text-decoration:none; background:#0F766E; border-color:#14B8A6; color:#fff;">&larr; Switch to Board Pinout Explorer</a>
+    </div>
+  </div>
+
+  <!-- Schematic Viewer -->
+  <div class="diagram-card">
+    <div class="diagram-controls">
+      <span>HIGH-RESOLUTION SCHEMATIC &amp; WIRING INTERCONNECT (Click &amp; Drag to Pan)</span>
+      <span>3800 &times; 2800 Vector Canvas</span>
+    </div>
+    <div class="diagram-viewport" id="viewport">
+      <img src="flight_rover_schematic.svg" id="diagram" alt="DevEBox STM32H750 Flight & Rover Schematic" style="transform: scale(1); transform-origin: top center;">
+    </div>
+  </div>
+
+  <!-- Master Interconnect Table -->
+  <div class="table-card">
+    <h2>Subsystem Interconnect &amp; Pin Assignment Reference</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Subsystem</th>
+          <th>Device</th>
+          <th>Header &amp; Pin #</th>
+          <th>STM32 Pin</th>
+          <th>Hardware Signal</th>
+          <th>Bus &amp; Configuration</th>
+          <th>Purpose &amp; Rate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- IMU -->
+        <tr>
+          <td><strong>Primary IMU</strong></td>
+          <td>BMI160 (6-Axis)</td>
+          <td>Header 1, Pin 30</td>
+          <td><code>PA4</code></td>
+          <td><span class="badge badge-spi">SPI1_NSS</span></td>
+          <td>SPI1 (10–20 MHz)</td>
+          <td>Chip Select</td>
+        </tr>
+        <tr>
+          <td><strong>Primary IMU</strong></td>
+          <td>BMI160 (6-Axis)</td>
+          <td>Header 1, Pin 29</td>
+          <td><code>PA5</code></td>
+          <td><span class="badge badge-spi">SPI1_SCK</span></td>
+          <td>SPI1 (10–20 MHz)</td>
+          <td>Bus Clock</td>
+        </tr>
+        <tr>
+          <td><strong>Primary IMU</strong></td>
+          <td>BMI160 (6-Axis)</td>
+          <td>Header 1, Pin 28</td>
+          <td><code>PA6</code></td>
+          <td><span class="badge badge-spi">SPI1_MISO</span></td>
+          <td>SPI1 (10–20 MHz)</td>
+          <td>Sensor Data Out (SAO)</td>
+        </tr>
+        <tr>
+          <td><strong>Primary IMU</strong></td>
+          <td>BMI160 (6-Axis)</td>
+          <td>Header 1, Pin 27</td>
+          <td><code>PA7</code></td>
+          <td><span class="badge badge-spi">SPI1_MOSI</span></td>
+          <td>SPI1 (10–20 MHz)</td>
+          <td>Sensor Data In (SDA)</td>
+        </tr>
+        <tr>
+          <td><strong>Primary IMU</strong></td>
+          <td>BMI160 (6-Axis)</td>
+          <td>Header 1, Pin 42</td>
+          <td><code>PE4</code></td>
+          <td><span class="badge badge-exti">EXTI4</span></td>
+          <td>Hardware EXTI</td>
+          <td><strong>Data-Ready Interrupt (1 kHz EKF2)</strong></td>
+        </tr>
+
+        <!-- Sensors & Dual Compass Architecture -->
+        <tr>
+          <td><strong>Primary Compass</strong></td>
+          <td>External Mast Magnetometer (Mag 1)</td>
+          <td>Header 2, Pin 42</td>
+          <td><code>PB8</code></td>
+          <td><span class="badge badge-i2c">I2C1_SCL</span></td>
+          <td>Isolated I2C1 (400 kHz)</td>
+          <td>GPS Mast Heading (Addr: 0x0D / 0x1E, 50 Hz)</td>
+        </tr>
+        <tr>
+          <td><strong>Primary Compass</strong></td>
+          <td>External Mast Magnetometer (Mag 1)</td>
+          <td>Header 2, Pin 41</td>
+          <td><code>PB9</code></td>
+          <td><span class="badge badge-i2c">I2C1_SDA</span></td>
+          <td>Isolated I2C1 (400 kHz)</td>
+          <td>GPS Mast Heading (Addr: 0x0D / 0x1E, 50 Hz)</td>
+        </tr>
+        <tr>
+          <td><strong>Secondary Compass</strong></td>
+          <td>Local GY-271 / QMC5883L (Mag 2)</td>
+          <td>Header 1, Pin 12</td>
+          <td><code>PB10</code></td>
+          <td><span class="badge badge-i2c">I2C2_SCL</span></td>
+          <td>Dedicated I2C2 (400 kHz)</td>
+          <td>Frame Heading / Bench / Failsafe (Addr: 0x0D)</td>
+        </tr>
+        <tr>
+          <td><strong>Secondary Compass</strong></td>
+          <td>Local GY-271 / QMC5883L (Mag 2)</td>
+          <td>Header 1, Pin 11</td>
+          <td><code>PB11</code></td>
+          <td><span class="badge badge-i2c">I2C2_SDA</span></td>
+          <td>Dedicated I2C2 (400 kHz)</td>
+          <td>Frame Heading / Bench / Failsafe (Addr: 0x0D)</td>
+        </tr>
+        <tr>
+          <td><strong>Barometer</strong></td>
+          <td>BMP280 Barometric Pressure</td>
+          <td>Header 1, Pin 12</td>
+          <td><code>PB10</code></td>
+          <td><span class="badge badge-i2c">I2C2_SCL</span></td>
+          <td>Shared I2C2 (400 kHz)</td>
+          <td>Altitude Hold / Climb Rate (Addr: 0x76)</td>
+        </tr>
+        <tr>
+          <td><strong>Barometer</strong></td>
+          <td>BMP280 Barometric Pressure</td>
+          <td>Header 1, Pin 11</td>
+          <td><code>PB11</code></td>
+          <td><span class="badge badge-i2c">I2C2_SDA</span></td>
+          <td>Shared I2C2 (400 kHz)</td>
+          <td>Altitude Hold / Climb Rate (Addr: 0x76)</td>
+        </tr>
+
+        <!-- GPS -->
+        <tr>
+          <td><strong>Navigation</strong></td>
+          <td>u-blox M8N / M10 GPS</td>
+          <td>Header 2, Pin 7</td>
+          <td><code>PD9</code></td>
+          <td><span class="badge badge-uart">USART3_RX</span></td>
+          <td>UART (115200 Baud)</td>
+          <td>NMEA / UBX Satellite Stream</td>
+        </tr>
+        <tr>
+          <td><strong>Navigation</strong></td>
+          <td>u-blox M8N / M10 GPS</td>
+          <td>Header 2, Pin 8</td>
+          <td><code>PD8</code></td>
+          <td><span class="badge badge-uart">USART3_TX</span></td>
+          <td>UART (115200 Baud)</td>
+          <td>GPS Configuration Commands</td>
+        </tr>
+
+        <!-- Companion Computer -->
+        <tr>
+          <td><strong>Companion</strong></td>
+          <td>Raspberry Pi 4 / 5</td>
+          <td>Header 2, Pin 33</td>
+          <td><code>PD6</code></td>
+          <td><span class="badge badge-uart">USART2_RX</span></td>
+          <td>DMA UART (921600 Baud)</td>
+          <td>ROS2 / MAVROS Offboard Stream</td>
+        </tr>
+        <tr>
+          <td><strong>Companion</strong></td>
+          <td>Raspberry Pi 4 / 5</td>
+          <td>Header 2, Pin 34</td>
+          <td><code>PD5</code></td>
+          <td><span class="badge badge-uart">USART2_TX</span></td>
+          <td>DMA UART (921600 Baud)</td>
+          <td>Telemetry / Vision Odometry</td>
+        </tr>
+
+        <!-- Telemetry & RC -->
+        <tr>
+          <td><strong>RC Pilot Link</strong></td>
+          <td>ELRS / Crossfire Receiver</td>
+          <td>Header 1, Pin 21</td>
+          <td><code>PE7</code></td>
+          <td><span class="badge badge-uart">UART7_RX</span></td>
+          <td>UART (420000 Baud)</td>
+          <td>RC Channel In (CRSF Packet)</td>
+        </tr>
+        <tr>
+          <td><strong>RC Pilot Link</strong></td>
+          <td>ELRS / Crossfire Receiver</td>
+          <td>Header 1, Pin 20</td>
+          <td><code>PE8</code></td>
+          <td><span class="badge badge-uart">UART7_TX</span></td>
+          <td>UART (420000 Baud)</td>
+          <td>RC Telemetry Out</td>
+        </tr>
+        <tr>
+          <td><strong>Wireless Bridge</strong></td>
+          <td>ESP32 Telemetry</td>
+          <td>Header 2, Pin 27</td>
+          <td><code>PD0</code></td>
+          <td><span class="badge badge-uart">UART4_RX</span></td>
+          <td>UART (115200 Baud)</td>
+          <td>WiFi / BLE MAVLink Link</td>
+        </tr>
+        <tr>
+          <td><strong>Wireless Bridge</strong></td>
+          <td>ESP32 Telemetry</td>
+          <td>Header 2, Pin 30</td>
+          <td><code>PD1</code></td>
+          <td><span class="badge badge-uart">UART4_TX</span></td>
+          <td>UART (115200 Baud)</td>
+          <td>WiFi / BLE MAVLink Link</td>
+        </tr>
+
+        <!-- Actuators Motors 1-8 -->
+        <tr>
+          <td><strong>Actuators</strong></td>
+          <td>Motor 1 (ESC 1)</td>
+          <td>Header 1, Pin 19</td>
+          <td><code>PE9</code></td>
+          <td><span class="badge badge-pwm">TIM1_CH1</span></td>
+          <td>Advanced Timer (PWM/DShot)</td>
+          <td>Quad / Hexa / Rover Left 1</td>
+        </tr>
+        <tr>
+          <td><strong>Actuators</strong></td>
+          <td>Motor 2 (ESC 2)</td>
+          <td>Header 1, Pin 17</td>
+          <td><code>PE11</code></td>
+          <td><span class="badge badge-pwm">TIM1_CH2</span></td>
+          <td>Advanced Timer (PWM/DShot)</td>
+          <td>Quad / Hexa / Rover Left 2</td>
+        </tr>
+        <tr>
+          <td><strong>Actuators</strong></td>
+          <td>Motor 3 (ESC 3)</td>
+          <td>Header 1, Pin 15</td>
+          <td><code>PE13</code></td>
+          <td><span class="badge badge-pwm">TIM1_CH3</span></td>
+          <td>Advanced Timer (PWM/DShot)</td>
+          <td>Quad / Hexa / Rover Left 3</td>
+        </tr>
+        <tr>
+          <td><strong>Actuators</strong></td>
+          <td>Motor 4 (ESC 4)</td>
+          <td>Header 1, Pin 14</td>
+          <td><code>PE14</code></td>
+          <td><span class="badge badge-pwm">TIM1_CH4</span></td>
+          <td>Advanced Timer (PWM/DShot)</td>
+          <td>Quad / Hexa / Rover Left 4</td>
+        </tr>
+        <tr>
+          <td><strong>Actuators</strong></td>
+          <td>Motor 5 (ESC 5)</td>
+          <td>Header 2, Pin 16</td>
+          <td><code>PC6</code></td>
+          <td><span class="badge badge-pwm">TIM3_CH1</span></td>
+          <td>General Timer (PWM/DShot)</td>
+          <td>Hexa / Rover Right 1</td>
+        </tr>
+        <tr>
+          <td><strong>Actuators</strong></td>
+          <td>Motor 6 (ESC 6)</td>
+          <td>Header 2, Pin 15</td>
+          <td><code>PC7</code></td>
+          <td><span class="badge badge-pwm">TIM3_CH2</span></td>
+          <td>General Timer (PWM/DShot)</td>
+          <td>Hexa / Rover Right 2</td>
+        </tr>
+        <tr>
+          <td><strong>Actuators</strong></td>
+          <td>Motor 7 (ESC 7)</td>
+          <td>Header 1, Pin 24</td>
+          <td><code>PB0</code></td>
+          <td><span class="badge badge-pwm">TIM3_CH3</span></td>
+          <td>General Timer (PWM/DShot)</td>
+          <td>8-Wheel Rover Right 3</td>
+        </tr>
+        <tr>
+          <td><strong>Actuators</strong></td>
+          <td>Motor 8 (ESC 8)</td>
+          <td>Header 1, Pin 23</td>
+          <td><code>PB1</code></td>
+          <td><span class="badge badge-pwm">TIM3_CH4</span></td>
+          <td>General Timer (PWM/DShot)</td>
+          <td>8-Wheel Rover Right 4</td>
+        </tr>
+
+        <!-- Power & Battery Sense -->
+        <tr>
+          <td><strong>Power Monitor</strong></td>
+          <td>LiPo Voltage (11:1 Divider + 100nF)</td>
+          <td>Header 1, Pin 34</td>
+          <td><code>PA0</code></td>
+          <td><span class="badge badge-adc">ADC1_INP16</span></td>
+          <td>16-Bit SAR ADC (0–3.3V)</td>
+          <td>Battery Rail Voltage (Up to 8S / 36.3V Max)</td>
+        </tr>
+        <tr>
+          <td><strong>Power Monitor</strong></td>
+          <td>Current Shunt / Drone PM02 Amp</td>
+          <td>Header 1, Pin 38</td>
+          <td><code>PC0</code></td>
+          <td><span class="badge badge-adc">ADC1_INP10</span></td>
+          <td>16-Bit SAR ADC (0–3.3V)</td>
+          <td>Total Battery Current Draw (Scaled &lt; 3.3V)</td>
+        </tr>
+        <tr>
+          <td><strong>Power Rail</strong></td>
+          <td>External 5V UBEC (with Schottky Diode)</td>
+          <td>Header 2, Pins 1, 2</td>
+          <td><code>5V</code></td>
+          <td><span class="badge badge-pwr">5V_SYS</span></td>
+          <td>Isolated External Rail</td>
+          <td>Flight Power (Schottky prevents USB Back-feed)</td>
+        </tr>
+        <tr>
+          <td><strong>Ground Station</strong></td>
+          <td>Native Micro-USB Port</td>
+          <td>Header 2, Pins 21, 24</td>
+          <td><code>PA11, PA12</code></td>
+          <td><span class="badge badge-uart">USB_FS</span></td>
+          <td>Native USB OTG (12 Mbps)</td>
+          <td>Bench QGroundControl &amp; DFU Firmware Upload</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    let currentScale = 1.0;
+    const diagram = document.getElementById('diagram');
+    const viewport = document.getElementById('viewport');
+
+    function zoomIn() {
+      currentScale += 0.2;
+      diagram.style.transform = `scale(${currentScale})`;
+    }
+    function zoomOut() {
+      if (currentScale > 0.4) {
+        currentScale -= 0.2;
+        diagram.style.transform = `scale(${currentScale})`;
+      }
+    }
+    function zoomReset() {
+      currentScale = 1.0;
+      diagram.style.transform = `scale(1)`;
+      viewport.scrollTop = 0;
+      viewport.scrollLeft = 0;
+    }
+
+    // Drag to Pan
+    let isDown = false;
+    let startX, startY, scrollLeft, scrollTop;
+
+    viewport.addEventListener('mousedown', (e) => {
+      isDown = true;
+      startX = e.pageX - viewport.offsetLeft;
+      startY = e.pageY - viewport.offsetTop;
+      scrollLeft = viewport.scrollLeft;
+      scrollTop = viewport.scrollTop;
+    });
+    viewport.addEventListener('mouseleave', () => { isDown = false; });
+    viewport.addEventListener('mouseup', () => { isDown = false; });
+    viewport.addEventListener('mousemove', (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - viewport.offsetLeft;
+      const y = e.pageY - viewport.offsetTop;
+      const walkX = (x - startX) * 1.5;
+      const walkY = (y - startY) * 1.5;
+      viewport.scrollLeft = scrollLeft - walkX;
+      viewport.scrollTop = scrollTop - walkY;
+    });
+  </script>
+</body>
+</html>
+
