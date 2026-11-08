@@ -1,0 +1,24 @@
+# Build artifacts
+build/
+bin/
+*.elf
+*.bin
+*.hex
+*.map
+*.o
+*.d
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+
+# IDE
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*~
