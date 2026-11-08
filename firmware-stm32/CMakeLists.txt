@@ -48,6 +48,9 @@ target_sources(${PROJECT_NAME} PRIVATE
   Src/bsp/bsp_board.c
   Src/bsp/bsp_qspi.c
   Src/sensors/bmi160.c
+  Src/sensors/i2c_bus.c
+  Src/sensors/bmp280.c
+  Src/sensors/qmc5883l.c
   # HAL Sources
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_cortex.c
@@ -59,6 +62,8 @@ target_sources(${PROJECT_NAME} PRIVATE
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_qspi.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi.c
   Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_spi_ex.c
+  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c.c
+  Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_i2c_ex.c
   # FreeRTOS Core Sources
   Middlewares/FreeRTOS-Kernel/tasks.c
   Middlewares/FreeRTOS-Kernel/queue.c
@@ -84,6 +89,8 @@ target_sources(${PROJECT_NAME} PRIVATE
   Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c
   Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c
 )
+
+target_link_libraries(${PROJECT_NAME} PRIVATE m)
 
 # Post-build step to produce flashable artifacts and view memory usage
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
