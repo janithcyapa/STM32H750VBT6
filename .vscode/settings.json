@@ -1,3 +1,4 @@
 {
-    "terminal.integrated.stickyScroll.enabled": false
+    "terminal.integrated.stickyScroll.enabled": false,
+    "cmake.sourceDirectory": "/home/jazz/Projects/STM32H750VBT6/firmware-stm32"
 }
