@@ -34,23 +34,25 @@ bool SD_CSV_Logger_Start(char *out_filename, size_t filename_size, uint16_t *out
         return false;
     }
 
-    // 2. Scan root directory for next available LOGxxxx.CSV
+    // 2. Find next available LOGxxxx.CSV and create it atomically
     uint16_t log_num = 1;
-    FILINFO fno;
     char fname[16];
+    res = FR_EXIST;
 
     while (log_num < 10000) {
         snprintf(fname, sizeof(fname), "LOG%04u.CSV", log_num);
-        res = f_stat(fname, &fno);
-        if (res == FR_NO_FILE) {
-            // File does not exist yet -> use this filename
+        res = f_open(&s_logfile, fname, FA_CREATE_NEW | FA_WRITE);
+        if (res == FR_OK) {
+            // Successfully created new incremental file and opened for writing
             break;
-        } else if (res != FR_OK) {
-            // Unexpected filesystem error
+        } else if (res == FR_EXIST) {
+            // File already exists, advance to next number
+            log_num++;
+        } else {
+            // Filesystem or disk I/O error
             f_mount(NULL, "", 0);
             return false;
         }
-        log_num++;
     }
 
     if (log_num >= 10000) {
@@ -61,13 +63,6 @@ bool SD_CSV_Logger_Start(char *out_filename, size_t filename_size, uint16_t *out
 
     strncpy(s_current_filename, fname, sizeof(s_current_filename) - 1);
     s_current_filename[sizeof(s_current_filename) - 1] = '\0';
-
-    // 3. Create and open the file for writing
-    res = f_open(&s_logfile, s_current_filename, FA_CREATE_ALWAYS | FA_WRITE);
-    if (res != FR_OK) {
-        f_mount(NULL, "", 0);
-        return false;
-    }
 
     // 4. Write CSV header line with complete per-anchor telemetry fields
     const char *header =

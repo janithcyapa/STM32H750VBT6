@@ -36,22 +36,19 @@ void BSP_Buttons_Init(void)
 {
     BSP_BUTTON_K1_CLK_ENABLE();
     BSP_BUTTON_K2_CLK_ENABLE();
-    __HAL_RCC_GPIOA_CLK_ENABLE();
 
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_PULLUP; // Active low buttons need Pull-up
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
 
+    // Button K1 on PE3 (Active LOW)
     GPIO_InitStruct.Pin = BSP_BUTTON_K1_PIN;
     HAL_GPIO_Init(BSP_BUTTON_K1_PORT, &GPIO_InitStruct);
 
+    // Button K2 on PC5 (Active LOW)
     GPIO_InitStruct.Pin = BSP_BUTTON_K2_PIN;
     HAL_GPIO_Init(BSP_BUTTON_K2_PORT, &GPIO_InitStruct);
-
-    // Also configure PA0 as alternative K2 button
-    GPIO_InitStruct.Pin = GPIO_PIN_0;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 }
 
 uint8_t BSP_Button_K1_Read(void)
@@ -62,12 +59,6 @@ uint8_t BSP_Button_K1_Read(void)
 
 uint8_t BSP_Button_K2_Read(void)
 {
-    // Returns 1 if pressed (PC5 is LOW or PA0 is LOW)
-    if (HAL_GPIO_ReadPin(BSP_BUTTON_K2_PORT, BSP_BUTTON_K2_PIN) == GPIO_PIN_RESET) {
-        return 1;
-    }
-    if (HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0) == GPIO_PIN_RESET) {
-        return 1;
-    }
-    return 0;
+    // Returns 1 if pressed (PC5 is LOW), 0 if released
+    return (HAL_GPIO_ReadPin(BSP_BUTTON_K2_PORT, BSP_BUTTON_K2_PIN) == GPIO_PIN_RESET) ? 1 : 0;
 }

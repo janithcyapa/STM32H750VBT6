@@ -35,7 +35,11 @@ def find_default_port():
     """Auto-detect STM32 USB CDC device port across Linux, macOS, and Windows."""
     ports = list(serial.tools.list_ports.comports())
     
-    # Priority matching by STM32 USB Vendor ID (0483) or Virtual COM Port descriptions
+    # Priority matching by STM32 USB CDC (VID 0483, PID 5740)
+    for p in ports:
+        if p.vid == 0x0483 and p.pid == 0x5740:
+            return p.device
+
     for p in ports:
         if p.vid == 0x0483:
             return p.device
@@ -200,6 +204,33 @@ class STM32SDManager:
             print(f"[!] Warning: Incomplete transfer ({len(received_bytes):,} of {file_size:,} bytes received).")
             return False
 
+    def start_recording(self):
+        """Send START command to trigger 10Hz logging to SD card."""
+        self.send_cmd("START")
+        start = time.time()
+        while time.time() - start < 1.5:
+            line = self.ser.readline().decode("utf-8", errors="replace").strip()
+            if "RECORDING STARTED" in line or "[ALREADY_RECORDING]" in line:
+                print(f"[+] {line}")
+                return True
+            if "ERROR" in line:
+                print(f"[!] {line}")
+                return False
+        print("[!] No confirmation received from STM32.")
+        return False
+
+    def stop_recording(self):
+        """Send STOP command to commit and finalize SD card CSV file."""
+        self.send_cmd("STOP")
+        start = time.time()
+        while time.time() - start < 2.0:
+            line = self.ser.readline().decode("utf-8", errors="replace").strip()
+            if "RECORDING STOPPED" in line or "[NOT_RECORDING]" in line:
+                print(f"[+] {line}")
+                return True
+        print("[!] No confirmation received from STM32.")
+        return False
+
     def delete_file(self, filename):
         self.send_cmd(f"DEL {filename}")
         start = time.time()
@@ -243,10 +274,12 @@ def interactive_menu(mgr, output_dir):
         print("  [3] Batch download ALL files")
         print("  [4] Delete a file from SD card")
         print("  [5] Check Board Status")
+        print("  [6] START Recording (K2 Trigger)")
+        print("  [7] STOP Recording (K2 Trigger)")
         print("  [0] Exit")
         print("-" * 55)
 
-        choice = input("Enter option [0-5]: ").strip()
+        choice = input("Enter option [0-7]: ").strip()
 
         if choice == "1":
             files = mgr.list_files()
@@ -306,11 +339,17 @@ def interactive_menu(mgr, output_dir):
             status = mgr.get_status()
             print(f"\n[Board Status]: {status}\n")
 
+        elif choice == "6":
+            mgr.start_recording()
+
+        elif choice == "7":
+            mgr.stop_recording()
+
         elif choice == "0":
             print("Exiting...")
             break
         else:
-            print("[!] Invalid option, please enter 0-5.")
+            print("[!] Invalid option, please enter 0-7.")
 
 
 def main():
@@ -321,6 +360,8 @@ def main():
     parser.add_argument("--list", "-l", action="store_true", help="List all CSV files on SD card and exit")
     parser.add_argument("--get", "-g", help="Download specific file by name (e.g. --get LOG0001.CSV)")
     parser.add_argument("--all", "-a", action="store_true", help="Download ALL CSV files on SD card")
+    parser.add_argument("--start", action="store_true", help="Trigger STM32 to start 10 Hz recording session")
+    parser.add_argument("--stop", action="store_true", help="Trigger STM32 to stop recording session and commit file")
     args = parser.parse_args()
 
     port = args.port or find_default_port()
@@ -333,7 +374,11 @@ def main():
         sys.exit(1)
 
     try:
-        if args.list:
+        if args.start:
+            mgr.start_recording()
+        elif args.stop:
+            mgr.stop_recording()
+        elif args.list:
             files = mgr.list_files()
             print_files_table(files)
         elif args.get:

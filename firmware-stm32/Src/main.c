@@ -211,46 +211,105 @@ static void Task_Main_App(void *pvParameters) {
       continue;
     }
 
-    // Button K2: Toggle 10 Hz Recording & SD CSV Log
+    // Flags to start or stop recording (triggered by K2 button OR USB commands)
+    bool trigger_start = false;
+    bool trigger_stop = false;
+
+    // Physical button K2: Toggle 10 Hz Recording & SD CSV Log
     if (k2_pressed) {
       if (!is_recording) {
-        if (SD_CSV_Logger_Start(active_filename, sizeof(active_filename), &active_log_num)) {
-          is_recording = true;
-          record_seq = 0;
-          BSP_LED_On(); // Solid LED ON indicates active recording
-          char start_msg[192];
-          int sl = snprintf(start_msg, sizeof(start_msg),
-                            "\r\n>>> [RECORDING STARTED] File: %s (#%u) <<<\r\n"
-                            "Streaming 10 Hz data to console and writing CSV to SD card...\r\n"
-                            "Press K2 again to STOP recording and finalize file.\r\n\r\n",
-                            active_filename, active_log_num);
-          CDC_Transmit_FS((uint8_t *)start_msg, (uint16_t)sl);
-        } else {
-          char err_msg[160];
-          int el = snprintf(err_msg, sizeof(err_msg),
-                            "\r\n[ERROR] Failed to create CSV file on SD card! Check FAT32 format.\r\n");
-          CDC_Transmit_FS((uint8_t *)err_msg, (uint16_t)el);
-        }
+        trigger_start = true;
       } else {
-        // Stop recording and close file
-        uint32_t total_recs = 0;
-        SD_CSV_Logger_Stop(&total_recs);
-        is_recording = false;
+        trigger_stop = true;
+      }
+    }
 
-        char stop_msg[220];
-        int sl = snprintf(stop_msg, sizeof(stop_msg),
-                          "\r\n>>> [RECORDING STOPPED] <<<\r\n"
-                          "File Saved          : %s\r\n"
-                          "Total Records Saved : %lu\r\n"
-                          "File flushed & committed. Safe to unplug SD card.\r\n"
-                          "Press K2 to start next recording session.\r\n\r\n",
-                          active_filename, (unsigned long)total_recs);
-        CDC_Transmit_FS((uint8_t *)stop_msg, (uint16_t)sl);
-
-        // Restore LED state
-        if (all_ok) {
-          BSP_LED_Off();
+    // Handle USB CDC Commands from Laptop / Python script
+    if (CDC_HasCommand()) {
+      char cmd[128];
+      if (CDC_GetCommand(cmd, sizeof(cmd))) {
+        char *p = cmd;
+        while (*p == ' ' || *p == '\t') p++;
+        size_t clen_cmd = strlen(p);
+        while (clen_cmd > 0 && (p[clen_cmd - 1] == ' ' || p[clen_cmd - 1] == '\r' || p[clen_cmd - 1] == '\n')) {
+          p[--clen_cmd] = '\0';
         }
+
+        if (strcasecmp(p, "LIST") == 0) {
+          SD_CSV_ListFiles();
+        } else if (strncasecmp(p, "GET ", 4) == 0) {
+          const char *fname = p + 4;
+          while (*fname == ' ') fname++;
+          SD_CSV_DownloadFile(fname);
+        } else if (strncasecmp(p, "DEL ", 4) == 0) {
+          const char *fname = p + 4;
+          while (*fname == ' ') fname++;
+          SD_CSV_DeleteFile(fname);
+        } else if (strcasecmp(p, "STATUS") == 0) {
+          char smsg[80];
+          snprintf(smsg, sizeof(smsg), "[STATUS:%s,VERIFIED:%s,FILE:%s]\r\n",
+                   is_recording ? "RECORDING" : "IDLE",
+                   all_ok ? "OK" : "ERR",
+                   is_recording ? active_filename : "NONE");
+          CDC_Transmit_FS_Blocking((const uint8_t *)smsg, (uint16_t)strlen(smsg), 100);
+        } else if (strcasecmp(p, "START") == 0 || strcasecmp(p, "REC START") == 0) {
+          if (!is_recording) {
+            trigger_start = true;
+          } else {
+            const char *msg = "[ALREADY_RECORDING]\r\n";
+            CDC_Transmit_FS_Blocking((const uint8_t *)msg, (uint16_t)strlen(msg), 100);
+          }
+        } else if (strcasecmp(p, "STOP") == 0 || strcasecmp(p, "REC STOP") == 0) {
+          if (is_recording) {
+            trigger_stop = true;
+          } else {
+            const char *msg = "[NOT_RECORDING]\r\n";
+            CDC_Transmit_FS_Blocking((const uint8_t *)msg, (uint16_t)strlen(msg), 100);
+          }
+        }
+      }
+    }
+
+    // Execute recording START
+    if (trigger_start) {
+      if (SD_CSV_Logger_Start(active_filename, sizeof(active_filename), &active_log_num)) {
+        is_recording = true;
+        record_seq = 0;
+        BSP_LED_On(); // Solid LED ON indicates active recording
+        char start_msg[192];
+        int sl = snprintf(start_msg, sizeof(start_msg),
+                          "\r\n>>> [RECORDING STARTED] File: %s (#%u) <<<\r\n"
+                          "Streaming 10 Hz data to console and writing CSV to SD card...\r\n"
+                          "Press K2 or send 'STOP' to finalize file.\r\n\r\n",
+                          active_filename, active_log_num);
+        CDC_Transmit_FS((uint8_t *)start_msg, (uint16_t)sl);
+      } else {
+        char err_msg[160];
+        int el = snprintf(err_msg, sizeof(err_msg),
+                          "\r\n[ERROR] Failed to create CSV file on SD card! Check FAT32 format.\r\n");
+        CDC_Transmit_FS((uint8_t *)err_msg, (uint16_t)el);
+      }
+    }
+
+    // Execute recording STOP
+    if (trigger_stop) {
+      uint32_t total_recs = 0;
+      SD_CSV_Logger_Stop(&total_recs);
+      is_recording = false;
+
+      char stop_msg[220];
+      int sl = snprintf(stop_msg, sizeof(stop_msg),
+                        "\r\n>>> [RECORDING STOPPED] <<<\r\n"
+                        "File Saved          : %s\r\n"
+                        "Total Records Saved : %lu\r\n"
+                        "File flushed & committed. Safe to unplug SD card.\r\n"
+                        "Press K2 or send 'START' to begin next recording session.\r\n\r\n",
+                        active_filename, (unsigned long)total_recs);
+      CDC_Transmit_FS((uint8_t *)stop_msg, (uint16_t)sl);
+
+      // Restore LED state
+      if (all_ok) {
+        BSP_LED_Off();
       }
     }
 
@@ -333,35 +392,7 @@ static void Task_Main_App(void *pvParameters) {
       SD_CSV_Logger_WriteRecord(csv_line);
 
     } else {
-      // Idle state: handle USB File Transfer commands from Laptop / Python script
-      if (CDC_HasCommand()) {
-        char cmd[128];
-        if (CDC_GetCommand(cmd, sizeof(cmd))) {
-          char *p = cmd;
-          while (*p == ' ' || *p == '\t') p++;
-          size_t clen_cmd = strlen(p);
-          while (clen_cmd > 0 && (p[clen_cmd - 1] == ' ' || p[clen_cmd - 1] == '\r' || p[clen_cmd - 1] == '\n')) {
-            p[--clen_cmd] = '\0';
-          }
-
-          if (strcasecmp(p, "LIST") == 0) {
-            SD_CSV_ListFiles();
-          } else if (strncasecmp(p, "GET ", 4) == 0) {
-            const char *fname = p + 4;
-            while (*fname == ' ') fname++;
-            SD_CSV_DownloadFile(fname);
-          } else if (strncasecmp(p, "DEL ", 4) == 0) {
-            const char *fname = p + 4;
-            while (*fname == ' ') fname++;
-            SD_CSV_DeleteFile(fname);
-          } else if (strcasecmp(p, "STATUS") == 0) {
-            char smsg[64];
-            snprintf(smsg, sizeof(smsg), "[STATUS:IDLE,VERIFIED:%s]\r\n", all_ok ? "OK" : "ERR");
-            CDC_Transmit_FS_Blocking((const uint8_t *)smsg, (uint16_t)strlen(smsg), 100);
-          }
-        }
-      }
-
+      // Idle state
       if (!all_ok) {
         // Verification failed: keep LED blinking (toggle every 250ms)
         if ((HAL_GetTick() - err_blink_tick) >= 250) {
