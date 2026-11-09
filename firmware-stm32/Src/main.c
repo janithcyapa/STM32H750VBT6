@@ -129,6 +129,25 @@ static void PrintVerificationReport(const SystemStatus_t *status, bool all_ok) {
   CDC_Transmit_FS((uint8_t *)msg, (uint16_t)len);
 }
 
+static void u64_to_str(uint64_t val, char *buf) {
+  if (val == 0) {
+    buf[0] = '0';
+    buf[1] = '\0';
+    return;
+  }
+  char temp[24];
+  int i = 0;
+  while (val > 0) {
+    temp[i++] = (char)('0' + (val % 10));
+    val /= 10;
+  }
+  int j = 0;
+  while (i > 0) {
+    buf[j++] = temp[--i];
+  }
+  buf[j] = '\0';
+}
+
 static void Task_Main_App(void *pvParameters) {
   (void)pvParameters;
 
@@ -143,9 +162,8 @@ static void Task_Main_App(void *pvParameters) {
   BMI160_RawData_t gyro = {0};
   BMP280_Data_t baro = {0};
   QMC5883L_Data_t mag = {0};
-  char telem_str[128] = {0};
   char console_line[320];
-  char csv_line[256];
+  char csv_line[896];
 
   // Wait 1.5 seconds for USB CDC host enumeration
   vTaskDelay(pdMS_TO_TICKS(1500));
@@ -250,30 +268,23 @@ static void Task_Main_App(void *pvParameters) {
       // 3. Read Magnetometer (RAW X, Y, Z)
       QMC5883L_Read(&mag);
 
-      // 4. Retrieve and parse latest Telemetry UART4 line into AP1..AP5
-      uint32_t age_ms = 0;
-      Telemetry_AP_Data_t ap_data = {0};
-      if (Telemetry_UART_GetLatestPacket(telem_str, sizeof(telem_str), &age_ms)) {
-        size_t tlen = strlen(telem_str);
-        while (tlen > 0 && (telem_str[tlen - 1] == '\r' || telem_str[tlen - 1] == '\n')) {
-          telem_str[--tlen] = '\0';
-        }
-        Telemetry_ParseAPs(telem_str, &ap_data);
-      } else {
-        strncpy(telem_str, "NO_DATA", sizeof(telem_str) - 1);
-      }
+      // 4. Retrieve parsed Telemetry $HL_RAW data snapshot
+      Telemetry_Data_t telem = {0};
+      uint16_t uav_id = 100;
+      bool telem_fresh = Telemetry_UART_GetLatestData(&telem, &uav_id);
+      (void)telem_fresh;
 
-      // Format human-readable AP summary for console logger
-      char ap_console[96] = {0};
-      int ap_len = 0;
+      // Format console summary for active anchors
+      char telem_console[128] = {0};
+      int tc_len = 0;
       for (int i = 0; i < 5; i++) {
-        if (ap_data.valid[i]) {
-          ap_len += snprintf(ap_console + ap_len, sizeof(ap_console) - ap_len,
-                             "AP%d:[R:%d F:%ld] ", i + 1, ap_data.rssi[i], (long)ap_data.ftm[i]);
+        if (telem.anchors[i].valid && (now_ms - telem.anchors[i].last_tick < 1500)) {
+          tc_len += snprintf(telem_console + tc_len, sizeof(telem_console) - tc_len,
+                             "A%d:[%ldcm %ddBm] ", i + 1, (long)telem.anchors[i].dist_cm, (int)telem.anchors[i].rssi);
         }
       }
-      if (ap_len == 0) {
-        strncpy(ap_console, "NO_AP", sizeof(ap_console) - 1);
+      if (tc_len == 0) {
+        strncpy(telem_console, "TEL: NO_ANCHOR", sizeof(telem_console) - 1);
       }
 
       // 5. Output ONE unified line per time step to USB CDC Logger
@@ -285,32 +296,39 @@ static void Task_Main_App(void *pvParameters) {
           gyro.x, gyro.y, gyro.z,
           mag.x, mag.y, mag.z,
           baro.temperature_c, baro.pressure_hpa, baro.altitude_m,
-          ap_console);
+          telem_console);
       CDC_Transmit_FS((uint8_t *)console_line, (uint16_t)clen);
 
-      // 6. Write CSV record with split AP1..AP5 RSSI & FTM columns to SD Card File
-      char ap_csv[10][16] = {{0}};
+      // 6. Write CSV record with split Anchor 1..5 fields to SD Card File
+      char a_str[5][128];
       for (int i = 0; i < 5; i++) {
-        if (ap_data.valid[i]) {
-          snprintf(ap_csv[i * 2], sizeof(ap_csv[0]), "%d", ap_data.rssi[i]);
-          snprintf(ap_csv[i * 2 + 1], sizeof(ap_csv[0]), "%ld", (long)ap_data.ftm[i]);
+        if (telem.anchors[i].valid && (now_ms - telem.anchors[i].last_tick < 1500)) {
+          char t1_s[24], t2_s[24], t3_s[24], t4_s[24];
+          u64_to_str(telem.anchors[i].t1_ps, t1_s);
+          u64_to_str(telem.anchors[i].t2_ps, t2_s);
+          u64_to_str(telem.anchors[i].t3_ps, t3_s);
+          u64_to_str(telem.anchors[i].t4_ps, t4_s);
+          snprintf(a_str[i], sizeof(a_str[i]), "%ld,%d,%lu,%s,%s,%s,%s,%ld",
+                   (long)telem.anchors[i].dist_cm, (int)telem.anchors[i].rssi,
+                   (unsigned long)telem.anchors[i].rtt_ps,
+                   t1_s, t2_s, t3_s, t4_s, (long)telem.anchors[i].ppm);
+        } else {
+          // 8 empty columns: 7 commas
+          strncpy(a_str[i], ",,,,,,,", sizeof(a_str[i]) - 1);
         }
       }
 
       int rlen = snprintf(
           csv_line, sizeof(csv_line),
-          "%lu,%d,%d,%d,%d,%d,%d,%d,%d,%d,%.2f,%.2f,%.2f,"
-          "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\r\n",
+          "%lu,%d,%d,%d,%d,%d,%d,%d,%d,%d,%.2f,%.2f,%.2f,%u,"
+          "%s,%s,%s,%s,%s\r\n",
           (unsigned long)now_ms,
           accel.x, accel.y, accel.z,
           gyro.x, gyro.y, gyro.z,
           mag.x, mag.y, mag.z,
           baro.temperature_c, baro.pressure_hpa, baro.altitude_m,
-          ap_csv[0], ap_csv[1],
-          ap_csv[2], ap_csv[3],
-          ap_csv[4], ap_csv[5],
-          ap_csv[6], ap_csv[7],
-          ap_csv[8], ap_csv[9]);
+          (unsigned int)uav_id,
+          a_str[0], a_str[1], a_str[2], a_str[3], a_str[4]);
       (void)rlen;
       SD_CSV_Logger_WriteRecord(csv_line);
 

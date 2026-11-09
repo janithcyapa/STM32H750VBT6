@@ -14,9 +14,12 @@ static volatile uint8_t s_rx_ring[TELEMETRY_RX_RING_SIZE];
 static volatile uint16_t s_rx_head = 0;
 static volatile uint16_t s_rx_tail = 0;
 
-static char s_latest_telemetry[128] = "NO_DATA";
+static char s_latest_telemetry[160] = "NO_DATA";
 static volatile uint32_t s_rx_packet_count = 0;
 static volatile uint32_t s_last_rx_packet_tick = 0;
+
+static Telemetry_Data_t s_telemetry_data = {0};
+static uint16_t s_global_uav_id = 100;
 
 bool Telemetry_UART_Init(uint32_t baudrate) {
     // 1. Configure Kernel Clock for UART4 (D2PCLK1 / APB1)
@@ -127,18 +130,109 @@ void UART4_IRQHandler(void) {
     }
 }
 
+static uint64_t parse_u64(const char *p, const char **end) {
+    uint64_t val = 0;
+    while (*p == ' ') p++;
+    while (*p >= '0' && *p <= '9') {
+        val = val * 10 + (uint64_t)(*p - '0');
+        p++;
+    }
+    if (end) *end = p;
+    return val;
+}
+
+static int32_t parse_i32(const char *p, const char **end) {
+    int32_t sign = 1;
+    int32_t val = 0;
+    while (*p == ' ') p++;
+    if (*p == '-') { sign = -1; p++; }
+    else if (*p == '+') { p++; }
+    while (*p >= '0' && *p <= '9') {
+        val = val * 10 + (*p - '0');
+        p++;
+    }
+    if (end) *end = p;
+    return val * sign;
+}
+
+void Telemetry_Parse_HL_RAW(const char *line) {
+    if (!line || strncmp(line, "$HL_RAW,", 8) != 0) return;
+    const char *p = line + 8;
+
+    // Field 1: uav_id
+    uint16_t uav_id = (uint16_t)parse_i32(p, &p);
+    if (*p == ',') p++;
+
+    // Field 2: anchor_id (1..5)
+    int32_t anchor_id = parse_i32(p, &p);
+    if (*p == ',') p++;
+    if (anchor_id < 1 || anchor_id > 5) return;
+    int idx = (int)(anchor_id - 1);
+
+    // Field 3: t1_ps (uint64)
+    uint64_t t1 = parse_u64(p, &p);
+    if (*p == ',') p++;
+
+    // Field 4: t2_ps (uint64)
+    uint64_t t2 = parse_u64(p, &p);
+    if (*p == ',') p++;
+
+    // Field 5: t3_ps (uint64)
+    uint64_t t3 = parse_u64(p, &p);
+    if (*p == ',') p++;
+
+    // Field 6: t4_ps (uint64)
+    uint64_t t4 = parse_u64(p, &p);
+    if (*p == ',') p++;
+
+    // Field 7: rtt_ps (uint32)
+    uint32_t rtt = (uint32_t)parse_u64(p, &p);
+    if (*p == ',') p++;
+
+    // Field 8: dist_cm (int32)
+    int32_t dist = parse_i32(p, &p);
+    if (*p == ',') p++;
+
+    // Field 9: rssi (int16)
+    int16_t rssi = (int16_t)parse_i32(p, &p);
+    if (*p == ',') p++;
+
+    // Field 10: ppm (int32)
+    int32_t ppm = parse_i32(p, &p);
+
+    taskENTER_CRITICAL();
+    s_telemetry_data.anchors[idx].valid = true;
+    s_telemetry_data.anchors[idx].last_tick = HAL_GetTick();
+    s_telemetry_data.anchors[idx].uav_id = uav_id;
+    s_telemetry_data.anchors[idx].anchor_id = (uint8_t)anchor_id;
+    s_telemetry_data.anchors[idx].t1_ps = t1;
+    s_telemetry_data.anchors[idx].t2_ps = t2;
+    s_telemetry_data.anchors[idx].t3_ps = t3;
+    s_telemetry_data.anchors[idx].t4_ps = t4;
+    s_telemetry_data.anchors[idx].rtt_ps = rtt;
+    s_telemetry_data.anchors[idx].dist_cm = dist;
+    s_telemetry_data.anchors[idx].rssi = rssi;
+    s_telemetry_data.anchors[idx].ppm = ppm;
+    s_global_uav_id = uav_id;
+    taskEXIT_CRITICAL();
+}
+
 static void SaveLatestPacket(const char *pkt) {
     if (pkt == NULL || pkt[0] == '\0') return;
+
     taskENTER_CRITICAL();
     strncpy(s_latest_telemetry, pkt, sizeof(s_latest_telemetry) - 1);
     s_latest_telemetry[sizeof(s_latest_telemetry) - 1] = '\0';
     s_rx_packet_count++;
     s_last_rx_packet_tick = HAL_GetTick();
     taskEXIT_CRITICAL();
+
+    // Automatically parse $HL_RAW frames as they arrive
+    Telemetry_Parse_HL_RAW(pkt);
 }
 
 void Telemetry_UART_Process(void) {
-    static char line_buf[128];
+    static char line_buf[192];
     static uint16_t line_len = 0;
     static uint32_t last_rx_tick = 0;
 
@@ -194,43 +288,26 @@ bool Telemetry_UART_GetLatestPacket(char *out_buf, size_t max_len, uint32_t *age
     return has_data;
 }
 
-uint32_t Telemetry_UART_GetRxCount(void) {
-    return s_rx_packet_count;
-}
+bool Telemetry_UART_GetLatestData(Telemetry_Data_t *out, uint16_t *uav_id) {
+    if (!out) return false;
 
-void Telemetry_ParseAPs(const char *raw_str, Telemetry_AP_Data_t *out) {
-    if (!out) return;
+    taskENTER_CRITICAL();
+    memcpy(out, (const void *)&s_telemetry_data, sizeof(Telemetry_Data_t));
+    if (uav_id) *uav_id = s_global_uav_id;
+    taskEXIT_CRITICAL();
+
+    uint32_t now = HAL_GetTick();
+    bool any_fresh = false;
     for (int i = 0; i < 5; i++) {
-        out->rssi[i] = 0;
-        out->ftm[i] = 0;
-        out->valid[i] = false;
-    }
-    if (!raw_str || raw_str[0] == '\0') return;
-
-    // Scan for AP1..AP5 patterns: "AP<num>-> RSSI: <val>, FTM: <val>"
-    for (int ap = 1; ap <= 5; ap++) {
-        char ap_tag[8];
-        int tag_len = snprintf(ap_tag, sizeof(ap_tag), "AP%d", ap);
-        const char *p = strstr(raw_str, ap_tag);
-        if (p != NULL && (p[tag_len] < '0' || p[tag_len] > '9')) {
-            const char *pipe = strchr(p, '|');
-            const char *r_ptr = strstr(p, "RSSI:");
-            if (r_ptr && (!pipe || r_ptr < pipe)) {
-                int rssi_val = 0;
-                if (sscanf(r_ptr, "RSSI: %d", &rssi_val) == 1) {
-                    out->rssi[ap - 1] = (int16_t)rssi_val;
-                    out->valid[ap - 1] = true;
-                }
-            }
-            const char *f_ptr = strstr(p, "FTM:");
-            if (f_ptr && (!pipe || f_ptr < pipe)) {
-                long ftm_val = 0;
-                if (sscanf(f_ptr, "FTM: %ld", &ftm_val) == 1) {
-                    out->ftm[ap - 1] = (int32_t)ftm_val;
-                }
-            }
+        if (out->anchors[i].valid && (now - out->anchors[i].last_tick < 1500)) {
+            any_fresh = true;
         }
     }
+    return any_fresh;
+}
+
+uint32_t Telemetry_UART_GetRxCount(void) {
+    return s_rx_packet_count;
 }
 
 void Task_Telemetry_Bridge(void *pvParameters) {

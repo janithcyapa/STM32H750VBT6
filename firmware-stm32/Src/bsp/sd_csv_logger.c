@@ -69,10 +69,14 @@ bool SD_CSV_Logger_Start(char *out_filename, size_t filename_size, uint16_t *out
         return false;
     }
 
-    // 4. Write CSV header line with dedicated AP1..AP5 RSSI and FTM columns
+    // 4. Write CSV header line with complete per-anchor telemetry fields
     const char *header =
-        "timestamp_ms,ax,ay,az,gx,gy,gz,mx,my,mz,temp_c,press_hpa,alt_m,"
-        "ap1_rssi,ap1_ftm,ap2_rssi,ap2_ftm,ap3_rssi,ap3_ftm,ap4_rssi,ap4_ftm,ap5_rssi,ap5_ftm\r\n";
+        "timestamp_ms,ax,ay,az,gx,gy,gz,mx,my,mz,temp_c,press_hpa,alt_m,uav_id,"
+        "a1_dist_cm,a1_rssi,a1_rtt_ps,a1_t1,a1_t2,a1_t3,a1_t4,a1_ppm,"
+        "a2_dist_cm,a2_rssi,a2_rtt_ps,a2_t1,a2_t2,a2_t3,a2_t4,a2_ppm,"
+        "a3_dist_cm,a3_rssi,a3_rtt_ps,a3_t1,a3_t2,a3_t3,a3_t4,a3_ppm,"
+        "a4_dist_cm,a4_rssi,a4_rtt_ps,a4_t1,a4_t2,a4_t3,a4_t4,a4_ppm,"
+        "a5_dist_cm,a5_rssi,a5_rtt_ps,a5_t1,a5_t2,a5_t3,a5_t4,a5_ppm\r\n";
     UINT bw = 0;
     res = f_write(&s_logfile, header, (UINT)strlen(header), &bw);
     if (res != FR_OK || bw != (UINT)strlen(header)) {

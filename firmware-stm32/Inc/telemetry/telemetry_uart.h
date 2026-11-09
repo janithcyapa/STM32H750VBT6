@@ -30,15 +30,31 @@ bool Telemetry_UART_GetLatestPacket(char *out_buf, size_t max_len, uint32_t *age
 // Get total count of complete telemetry packets received
 uint32_t Telemetry_UART_GetRxCount(void);
 
-// Parsed Telemetry Data for up to 5 Access Points (AP1..AP5)
+// Parsed Telemetry Data per Anchor from $HL_RAW frames
 typedef struct {
-    int16_t rssi[5];
-    int32_t ftm[5];
-    bool valid[5];
-} Telemetry_AP_Data_t;
+    bool     valid;
+    uint32_t last_tick;
+    uint16_t uav_id;
+    uint8_t  anchor_id;
+    uint64_t t1_ps;     // 64-bit Anchor frame TX timestamp (ps)
+    uint64_t t2_ps;     // 64-bit UAV frame RX timestamp (ps)
+    uint64_t t3_ps;     // 64-bit UAV ACK TX timestamp (ps)
+    uint64_t t4_ps;     // 64-bit Anchor ACK RX timestamp (ps)
+    uint32_t rtt_ps;    // 32-bit Round-Trip Time in ps
+    int32_t  dist_cm;   // 32-bit Calculated distance in cm
+    int16_t  rssi;      // 8-bit/16-bit RSSI in dBm
+    int32_t  ppm;       // Clock frequency drift offset in PPM
+} Telemetry_Anchor_t;
 
-// Parse a raw telemetry string (e.g. "AP1-> RSSI: -43, FTM: 885 | AP2-> RSSI: -32, FTM: 675")
-void Telemetry_ParseAPs(const char *raw_str, Telemetry_AP_Data_t *out);
+typedef struct {
+    Telemetry_Anchor_t anchors[5]; // Up to 5 Anchors (index 0=A1 .. 4=A5)
+} Telemetry_Data_t;
+
+// Retrieve snapshot of all parsed anchor data
+bool Telemetry_UART_GetLatestData(Telemetry_Data_t *out, uint16_t *uav_id);
+
+// Parse an incoming raw $HL_RAW frame into anchor structure
+void Telemetry_Parse_HL_RAW(const char *line);
 
 // FreeRTOS Task function for Telemetry Bridge
 void Task_Telemetry_Bridge(void *pvParameters);
