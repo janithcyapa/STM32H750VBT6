@@ -61,6 +61,11 @@ bool BSP_SD_ReadSector(uint32_t block_addr, uint8_t *buf);
 bool BSP_SD_WriteSector(uint32_t block_addr, const uint8_t *buf);
 
 /**
+ * @brief Get total block count of the SD card
+ */
+uint32_t BSP_SD_GetBlockCount(void);
+
+/**
  * @brief Get human-readable error description
  */
 const char *BSP_SD_GetErrorString(uint32_t error_code);

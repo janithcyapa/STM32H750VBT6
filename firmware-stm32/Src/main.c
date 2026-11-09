@@ -3,6 +3,7 @@
 #include "bmp280.h"
 #include "bsp_board.h"
 #include "bsp_sdcard.h"
+#include "sd_csv_logger.h"
 #include "i2c_bus.h"
 #include "qmc5883l.h"
 #include "task.h"
@@ -26,6 +27,7 @@ typedef struct {
   bool mag_ok;
   bool telem_ok;
   bool sd_ok;
+  bool fatfs_ok;
   uint8_t imu_id;
   uint8_t baro_id;
   uint8_t mag_id;
@@ -71,15 +73,15 @@ static bool RunSystemVerification(SystemStatus_t *status) {
   // 6. Verify Telemetry UART4 (PD1 TX, PD0 RX)
   status->telem_ok = Telemetry_UART_IsReady();
 
-  // 7. Verify SDMMC1 MicroSD Card Reader & initialize logger
+  // 7. Verify SDMMC1 Hardware & FAT32 Filesystem
   status->sd_ok = BSP_SD_RunSelfTest(&status->sd_diag);
   if (status->sd_ok) {
-    BSP_SD_Logger_Init();
+    status->fatfs_ok = SD_CSV_Logger_Init();
   }
 
   // Overall Verification Result
   bool all_ok = status->imu_ok && status->baro_ok && status->mag_ok &&
-                status->telem_ok && status->sd_ok;
+                status->telem_ok && status->sd_ok && status->fatfs_ok;
 
   if (all_ok) {
     // Verification passed: turn LED OFF (stop blinking)
@@ -100,7 +102,7 @@ static void PrintVerificationReport(const SystemStatus_t *status, bool all_ok) {
       "  [2] BMP280 Baro (I2C1)  : %s (ID: 0x%02X)\r\n"
       "  [3] QMC5883 Mag (I2C1)  : %s (ID: 0x%02X)\r\n"
       "  [4] TELEMETRY (UART4)   : %s (PD1:TX, PD0:RX)\r\n"
-      "  [5] SD CARD (SDMMC1)    : %s (%lu MB, MBR: %s, R/W: %s)\r\n",
+      "  [5] SD CARD (FAT32)     : %s (%lu MB, MBR: %s, FS: %s)\r\n",
       status->imu_ok ? "PASS" : "FAIL", status->imu_id,
       status->baro_ok ? "PASS" : "FAIL", status->baro_id,
       status->mag_ok ? "PASS" : "FAIL", status->mag_id,
@@ -108,7 +110,7 @@ static void PrintVerificationReport(const SystemStatus_t *status, bool all_ok) {
       status->sd_ok ? "PASS" : "FAIL",
       (unsigned long)status->sd_diag.card_info.capacity_mb,
       status->sd_diag.has_mbr_signature ? "OK" : "RAW",
-      status->sd_diag.sector_rw_test_ok ? "OK" : "FAIL");
+      status->fatfs_ok ? "FAT32 OK" : "NO FAT32");
   CDC_Transmit_FS((uint8_t *)msg, (uint16_t)len);
   vTaskDelay(pdMS_TO_TICKS(10));
 
@@ -119,10 +121,10 @@ static void PrintVerificationReport(const SystemStatus_t *status, bool all_ok) {
       "  LED STATUS              : %s\r\n"
       "---------------------------------------------------\r\n"
       "  [Button K1 (PE3)]       : Re-run System Verification\r\n"
-      "  [Button K2 (PC5/PA0)]   : Toggle 10 Hz Recording & SD Log\r\n"
+      "  [Button K2 (PC5/PA0)]   : Toggle 10 Hz Recording & CSV Log\r\n"
       "===================================================\r\n\r\n",
       all_ok ? "ALL SYSTEMS VERIFIED OK -> IDLE"
-             : "VERIFICATION FAILED (Check hardware)",
+             : "VERIFICATION FAILED (Check hardware/SD)",
       all_ok ? "OFF (Idle)" : "BLINKING (Error Indicator)");
   CDC_Transmit_FS((uint8_t *)msg, (uint16_t)len);
 }
@@ -134,6 +136,8 @@ static void Task_Main_App(void *pvParameters) {
   bool all_ok = false;
   bool is_recording = false;
   uint32_t record_seq = 0;
+  char active_filename[16] = {0};
+  uint16_t active_log_num = 0;
 
   BMI160_RawData_t accel = {0};
   BMI160_RawData_t gyro = {0};
@@ -173,13 +177,13 @@ static void Task_Main_App(void *pvParameters) {
     if (k1_pressed) {
       if (is_recording) {
         // Automatically stop recording first if running
-        uint32_t recs = 0, secs = 0;
-        BSP_SD_Logger_StopSession(&recs, &secs);
+        uint32_t recs = 0;
+        SD_CSV_Logger_Stop(&recs);
         is_recording = false;
         char stop_msg[128];
         int sl = snprintf(stop_msg, sizeof(stop_msg),
-                          "\r\n[LOG] Recording stopped for verification (Saved %lu records, %lu sectors).\r\n",
-                          (unsigned long)recs, (unsigned long)secs);
+                          "\r\n[LOG] Recording stopped for verification (Saved %lu records in %s).\r\n",
+                          (unsigned long)recs, active_filename);
         CDC_Transmit_FS((uint8_t *)stop_msg, (uint16_t)sl);
       }
 
@@ -189,40 +193,40 @@ static void Task_Main_App(void *pvParameters) {
       continue;
     }
 
-    // Button K2: Toggle 10 Hz Recording & SD Log
+    // Button K2: Toggle 10 Hz Recording & SD CSV Log
     if (k2_pressed) {
       if (!is_recording) {
-        uint32_t session_id = 0, start_sec = 0;
-        if (BSP_SD_Logger_StartSession(&session_id, &start_sec)) {
+        if (SD_CSV_Logger_Start(active_filename, sizeof(active_filename), &active_log_num)) {
           is_recording = true;
           record_seq = 0;
           BSP_LED_On(); // Solid LED ON indicates active recording
           char start_msg[192];
           int sl = snprintf(start_msg, sizeof(start_msg),
-                            "\r\n>>> [RECORDING STARTED] Session #%lu (Sector %lu) <<<\r\n"
-                            "Streaming 10 Hz data to console and logging to SD card...\r\n"
-                            "Press K2 again to STOP recording.\r\n\r\n",
-                            (unsigned long)session_id, (unsigned long)start_sec);
+                            "\r\n>>> [RECORDING STARTED] File: %s (#%u) <<<\r\n"
+                            "Streaming 10 Hz data to console and writing CSV to SD card...\r\n"
+                            "Press K2 again to STOP recording and finalize file.\r\n\r\n",
+                            active_filename, active_log_num);
           CDC_Transmit_FS((uint8_t *)start_msg, (uint16_t)sl);
         } else {
-          char err_msg[128];
+          char err_msg[160];
           int el = snprintf(err_msg, sizeof(err_msg),
-                            "\r\n[ERROR] Failed to start SD Logger! Check SD card.\r\n");
+                            "\r\n[ERROR] Failed to create CSV file on SD card! Check FAT32 format.\r\n");
           CDC_Transmit_FS((uint8_t *)err_msg, (uint16_t)el);
         }
       } else {
-        // Stop recording
-        uint32_t total_recs = 0, total_secs = 0;
-        BSP_SD_Logger_StopSession(&total_recs, &total_secs);
+        // Stop recording and close file
+        uint32_t total_recs = 0;
+        SD_CSV_Logger_Stop(&total_recs);
         is_recording = false;
 
-        char stop_msg[192];
+        char stop_msg[220];
         int sl = snprintf(stop_msg, sizeof(stop_msg),
                           "\r\n>>> [RECORDING STOPPED] <<<\r\n"
+                          "File Saved          : %s\r\n"
                           "Total Records Saved : %lu\r\n"
-                          "SD Sectors Written  : %lu\r\n"
-                          "Press K2 to start a new recording session.\r\n\r\n",
-                          (unsigned long)total_recs, (unsigned long)total_secs);
+                          "File flushed & committed. Safe to unplug SD card.\r\n"
+                          "Press K2 to start next recording session.\r\n\r\n",
+                          active_filename, (unsigned long)total_recs);
         CDC_Transmit_FS((uint8_t *)stop_msg, (uint16_t)sl);
 
         // Restore LED state
@@ -269,7 +273,7 @@ static void Task_Main_App(void *pvParameters) {
           telem_str);
       CDC_Transmit_FS((uint8_t *)console_line, (uint16_t)clen);
 
-      // 6. Write CSV record to SD Card buffer
+      // 6. Write CSV record to SD Card File
       int rlen = snprintf(
           csv_line, sizeof(csv_line),
           "%lu,%d,%d,%d,%d,%d,%d,%d,%d,%d,%.2f,%.2f,%.2f,\"%s\"\r\n",
@@ -280,7 +284,7 @@ static void Task_Main_App(void *pvParameters) {
           baro.temperature_c, baro.pressure_hpa, baro.altitude_m,
           telem_str);
       (void)rlen;
-      BSP_SD_Logger_WriteRecord(csv_line);
+      SD_CSV_Logger_WriteRecord(csv_line);
 
     } else {
       // Idle state: no streaming to console

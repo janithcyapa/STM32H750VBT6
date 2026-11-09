@@ -255,6 +255,15 @@ bool BSP_SD_RunSelfTest(BSP_SD_DiagStatus_t *diag)
     return (diag->initialized && diag->sector0_read_ok);
 }
 
+uint32_t BSP_SD_GetBlockCount(void)
+{
+    HAL_SD_CardInfoTypeDef card_info;
+    if (HAL_SD_GetCardInfo(&hsd1, &card_info) == HAL_OK) {
+        return card_info.BlockNbr;
+    }
+    return 0;
+}
+
 const char *BSP_SD_GetErrorString(uint32_t error_code)
 {
     if (error_code == HAL_SD_ERROR_NONE) return "No Error";

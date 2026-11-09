@@ -23,6 +23,9 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
   USE_HAL_DRIVER
 )
 
+# Optimize for size to conserve internal 128KB flash
+target_compile_options(${PROJECT_NAME} PRIVATE -Os)
+
 # Modern target-scoped includes
 target_include_directories(${PROJECT_NAME} PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/Inc
@@ -41,6 +44,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   # USB Middleware Includes
   ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Core/Inc
   ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc
+  # FatFs Includes
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/FatFs
 )
 
 # Add the HAL C source files to the build
@@ -49,6 +54,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/Src/bsp/bsp_board.c
   ${CMAKE_CURRENT_SOURCE_DIR}/Src/bsp/bsp_qspi.c
   ${CMAKE_CURRENT_SOURCE_DIR}/Src/bsp/bsp_sdcard.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Src/bsp/sd_csv_logger.c
   ${CMAKE_CURRENT_SOURCE_DIR}/Src/sensors/bmi160.c
   ${CMAKE_CURRENT_SOURCE_DIR}/Src/sensors/i2c_bus.c
   ${CMAKE_CURRENT_SOURCE_DIR}/Src/sensors/bmp280.c
@@ -97,6 +103,9 @@ target_sources(${PROJECT_NAME} PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c
   ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c
   ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c
+  # FatFs Sources
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/FatFs/ff.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/FatFs/diskio.c
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE m)
