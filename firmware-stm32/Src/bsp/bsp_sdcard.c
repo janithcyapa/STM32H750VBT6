@@ -1,4 +1,5 @@
 #include "bsp_sdcard.h"
+#include <stdio.h>
 #include <string.h>
 
 static SD_HandleTypeDef hsd1;
@@ -269,4 +270,144 @@ const char *BSP_SD_GetErrorString(uint32_t error_code)
     if (error_code & HAL_SD_ERROR_TIMEOUT) return "Timeout (No Card Detected)";
     if (error_code & HAL_SD_ERROR_PARAM) return "Invalid Parameter";
     return "Unknown/Hardware Error";
+}
+
+/* --- High-level Unified Data Logger Implementation --- */
+#define SD_LOG_INDEX_SECTOR   8191
+#define SD_LOG_FIRST_SECTOR   8192
+#define SD_LOG_MAGIC          0x53444C47  // "SDLG"
+
+typedef struct {
+    uint32_t magic;
+    uint32_t last_session_id;
+    uint32_t next_sector;
+    uint32_t reserved[125];
+} SD_Log_Index_t;
+
+static uint32_t s_log_current_sector = SD_LOG_FIRST_SECTOR;
+static uint32_t s_log_session_id = 0;
+static uint32_t s_log_record_count = 0;
+static uint32_t s_log_session_start_sector = 0;
+static uint16_t s_log_buf_len = 0;
+static uint8_t  s_log_buf[512] __attribute__((aligned(4)));
+static bool     s_log_active = false;
+static bool     s_logger_initialized = false;
+
+bool BSP_SD_Logger_Init(void)
+{
+    if (hsd1.State == HAL_SD_STATE_RESET) {
+        if (!BSP_SD_Init()) {
+            return false;
+        }
+    }
+
+    // Try reading log index sector
+    if (BSP_SD_ReadSector(SD_LOG_INDEX_SECTOR, sector_verify)) {
+        SD_Log_Index_t *idx = (SD_Log_Index_t *)sector_verify;
+        if (idx->magic == SD_LOG_MAGIC && idx->next_sector >= SD_LOG_FIRST_SECTOR && idx->next_sector < 0x20000000) {
+            s_log_session_id = idx->last_session_id;
+            s_log_current_sector = idx->next_sector;
+        } else {
+            s_log_session_id = 0;
+            s_log_current_sector = SD_LOG_FIRST_SECTOR;
+        }
+    } else {
+        s_log_session_id = 0;
+        s_log_current_sector = SD_LOG_FIRST_SECTOR;
+    }
+
+    s_logger_initialized = true;
+    return true;
+}
+
+bool BSP_SD_Logger_StartSession(uint32_t *out_session_id, uint32_t *out_start_sector)
+{
+    if (!s_logger_initialized) {
+        if (!BSP_SD_Logger_Init()) {
+            return false;
+        }
+    }
+
+    s_log_session_id++;
+    s_log_record_count = 0;
+    s_log_session_start_sector = s_log_current_sector;
+    s_log_buf_len = 0;
+    memset(s_log_buf, 0, sizeof(s_log_buf));
+
+    // Write CSV header banner at the beginning of each session
+    char hdr[192];
+    int hlen = snprintf(hdr, sizeof(hdr),
+        "# --- SESSION %lu START (Sector %lu) ---\r\n"
+        "timestamp_ms,ax,ay,az,gx,gy,gz,mx,my,mz,temp_c,press_hpa,alt_m,telemetry\r\n",
+        (unsigned long)s_log_session_id, (unsigned long)s_log_session_start_sector);
+
+    for (int i = 0; i < hlen; i++) {
+        s_log_buf[s_log_buf_len++] = (uint8_t)hdr[i];
+        if (s_log_buf_len == 512) {
+            BSP_SD_WriteSector(s_log_current_sector++, s_log_buf);
+            s_log_buf_len = 0;
+            memset(s_log_buf, 0, sizeof(s_log_buf));
+        }
+    }
+
+    s_log_active = true;
+
+    if (out_session_id) *out_session_id = s_log_session_id;
+    if (out_start_sector) *out_start_sector = s_log_session_start_sector;
+
+    return true;
+}
+
+bool BSP_SD_Logger_WriteRecord(const char *record)
+{
+    if (!s_log_active || record == NULL) {
+        return false;
+    }
+
+    size_t len = strlen(record);
+    for (size_t i = 0; i < len; i++) {
+        s_log_buf[s_log_buf_len++] = (uint8_t)record[i];
+        if (s_log_buf_len == 512) {
+            BSP_SD_WriteSector(s_log_current_sector++, s_log_buf);
+            s_log_buf_len = 0;
+            memset(s_log_buf, 0, sizeof(s_log_buf));
+        }
+    }
+
+    s_log_record_count++;
+    return true;
+}
+
+bool BSP_SD_Logger_StopSession(uint32_t *out_total_records, uint32_t *out_sectors_written)
+{
+    if (!s_log_active) {
+        return false;
+    }
+
+    // Flush any pending bytes in buffer to current sector
+    if (s_log_buf_len > 0) {
+        // Pad remainder with 0
+        memset(&s_log_buf[s_log_buf_len], 0, 512 - s_log_buf_len);
+        BSP_SD_WriteSector(s_log_current_sector++, s_log_buf);
+        s_log_buf_len = 0;
+    }
+
+    // Update index sector on SD card to persist across power cycles
+    SD_Log_Index_t index = {0};
+    index.magic = SD_LOG_MAGIC;
+    index.last_session_id = s_log_session_id;
+    index.next_sector = s_log_current_sector;
+    BSP_SD_WriteSector(SD_LOG_INDEX_SECTOR, (const uint8_t *)&index);
+
+    s_log_active = false;
+
+    if (out_total_records) *out_total_records = s_log_record_count;
+    if (out_sectors_written) *out_sectors_written = s_log_current_sector - s_log_session_start_sector;
+
+    return true;
+}
+
+bool BSP_SD_Logger_IsActive(void)
+{
+    return s_log_active;
 }

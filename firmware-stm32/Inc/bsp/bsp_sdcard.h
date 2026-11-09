@@ -65,6 +65,13 @@ bool BSP_SD_WriteSector(uint32_t block_addr, const uint8_t *buf);
  */
 const char *BSP_SD_GetErrorString(uint32_t error_code);
 
+/* --- High-level Unified Data Logger Functions --- */
+bool BSP_SD_Logger_Init(void);
+bool BSP_SD_Logger_StartSession(uint32_t *out_session_id, uint32_t *out_start_sector);
+bool BSP_SD_Logger_WriteRecord(const char *record);
+bool BSP_SD_Logger_StopSession(uint32_t *out_total_records, uint32_t *out_sectors_written);
+bool BSP_SD_Logger_IsActive(void);
+
 #ifdef __cplusplus
 }
 #endif

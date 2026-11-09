@@ -14,6 +14,10 @@ static volatile uint8_t s_rx_ring[TELEMETRY_RX_RING_SIZE];
 static volatile uint16_t s_rx_head = 0;
 static volatile uint16_t s_rx_tail = 0;
 
+static char s_latest_telemetry[128] = "NO_DATA";
+static volatile uint32_t s_rx_packet_count = 0;
+static volatile uint32_t s_last_rx_packet_tick = 0;
+
 bool Telemetry_UART_Init(uint32_t baudrate) {
     // 1. Configure Kernel Clock for UART4 (D2PCLK1 / APB1)
     RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
@@ -123,6 +127,16 @@ void UART4_IRQHandler(void) {
     }
 }
 
+static void SaveLatestPacket(const char *pkt) {
+    if (pkt == NULL || pkt[0] == '\0') return;
+    taskENTER_CRITICAL();
+    strncpy(s_latest_telemetry, pkt, sizeof(s_latest_telemetry) - 1);
+    s_latest_telemetry[sizeof(s_latest_telemetry) - 1] = '\0';
+    s_rx_packet_count++;
+    s_last_rx_packet_tick = HAL_GetTick();
+    taskEXIT_CRITICAL();
+}
+
 void Telemetry_UART_Process(void) {
     static char line_buf[128];
     static uint16_t line_len = 0;
@@ -138,20 +152,16 @@ void Telemetry_UART_Process(void) {
         } else if (c == '\n') {
             if (line_len > 0) {
                 line_buf[line_len] = '\0';
-                char usb_msg[160];
-                int n = snprintf(usb_msg, sizeof(usb_msg), "[TELEMETRY RX]: %s\r\n", line_buf);
-                CDC_Transmit_FS((uint8_t *)usb_msg, (uint16_t)n);
+                SaveLatestPacket(line_buf);
                 line_len = 0;
             }
         } else {
             if (line_len < sizeof(line_buf) - 1) {
                 line_buf[line_len++] = (char)c;
             } else {
-                // Buffer full, flush line
+                // Buffer full, save packet
                 line_buf[line_len] = '\0';
-                char usb_msg[160];
-                int n = snprintf(usb_msg, sizeof(usb_msg), "[TELEMETRY RX]: %s\r\n", line_buf);
-                CDC_Transmit_FS((uint8_t *)usb_msg, (uint16_t)n);
+                SaveLatestPacket(line_buf);
                 line_len = 0;
             }
         }
@@ -160,11 +170,32 @@ void Telemetry_UART_Process(void) {
     // Flush any pending data if line was not terminated and 50ms elapsed
     if (line_len > 0 && (HAL_GetTick() - last_rx_tick > 50)) {
         line_buf[line_len] = '\0';
-        char usb_msg[160];
-        int n = snprintf(usb_msg, sizeof(usb_msg), "[TELEMETRY RX]: %s\r\n", line_buf);
-        CDC_Transmit_FS((uint8_t *)usb_msg, (uint16_t)n);
+        SaveLatestPacket(line_buf);
         line_len = 0;
     }
+}
+
+bool Telemetry_UART_GetLatestPacket(char *out_buf, size_t max_len, uint32_t *age_ms) {
+    if (out_buf == NULL || max_len == 0) return false;
+
+    taskENTER_CRITICAL();
+    strncpy(out_buf, s_latest_telemetry, max_len - 1);
+    out_buf[max_len - 1] = '\0';
+    if (age_ms != NULL) {
+        if (s_rx_packet_count > 0) {
+            *age_ms = HAL_GetTick() - s_last_rx_packet_tick;
+        } else {
+            *age_ms = 0xFFFFFFFF;
+        }
+    }
+    bool has_data = (s_rx_packet_count > 0);
+    taskEXIT_CRITICAL();
+
+    return has_data;
+}
+
+uint32_t Telemetry_UART_GetRxCount(void) {
+    return s_rx_packet_count;
 }
 
 void Task_Telemetry_Bridge(void *pvParameters) {
@@ -173,35 +204,24 @@ void Task_Telemetry_Bridge(void *pvParameters) {
     uint32_t hb_count = 0;
     TickType_t last_hb_tick = xTaskGetTickCount();
 
-    // Small delay before initial active announcement
+    // Small delay before initial active announcement on UART4 TX
     vTaskDelay(pdMS_TO_TICKS(500));
     Telemetry_UART_SendString("This is STM32H750 Telemetry UART Ready\r\n");
 
     while (1) {
-        // 1. Process UART4 RX (PD0) from HiveLink and USB CDC -> UART4 TX queue
+        // 1. Process UART4 RX (PD0) from HiveLink
         Telemetry_UART_Process();
 
-        // 2. Periodic hardcoded heartbeat over PD1 (UART4 TX) every 1000ms
+        // 2. Periodic hardcoded heartbeat over PD1 (UART4 TX) every 1000ms (silent to USB)
         if ((xTaskGetTickCount() - last_hb_tick) >= pdMS_TO_TICKS(1000)) {
             last_hb_tick = xTaskGetTickCount();
             hb_count++;
 
-            // Hardcoded heartbeat string for PD1 (HiveLink)
             char hb_msg[96];
             int hb_len = snprintf(hb_msg, sizeof(hb_msg),
                                   "[STM32 HEARTBEAT #%lu] Hello from STM32H750 (PD1 TX)!\r\n",
                                   hb_count);
-
-            HAL_StatusTypeDef status = Telemetry_UART_Send((const uint8_t *)hb_msg, (uint16_t)hb_len);
-
-            // Log heartbeat transmission status to USB CDC
-            char usb_log[128];
-            int ul_len = snprintf(usb_log, sizeof(usb_log),
-                                  "[TELEMETRY TX #%lu] -> PD1: %s (%s)\r\n",
-                                  hb_count,
-                                  status == HAL_OK ? "SENT" : "FAILED",
-                                  status == HAL_OK ? "OK" : "ERR");
-            CDC_Transmit_FS((uint8_t *)usb_log, (uint16_t)ul_len);
+            Telemetry_UART_Send((const uint8_t *)hb_msg, (uint16_t)hb_len);
         }
 
         vTaskDelay(pdMS_TO_TICKS(10));
