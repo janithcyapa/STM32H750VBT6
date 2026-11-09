@@ -170,8 +170,40 @@ void Telemetry_UART_Process(void) {
 void Task_Telemetry_Bridge(void *pvParameters) {
     (void)pvParameters;
 
+    uint32_t hb_count = 0;
+    TickType_t last_hb_tick = xTaskGetTickCount();
+
+    // Small delay before initial active announcement
+    vTaskDelay(pdMS_TO_TICKS(500));
+    Telemetry_UART_SendString("This is STM32H750 Telemetry UART Ready\r\n");
+
     while (1) {
+        // 1. Process UART4 RX (PD0) from HiveLink and USB CDC -> UART4 TX queue
         Telemetry_UART_Process();
+
+        // 2. Periodic hardcoded heartbeat over PD1 (UART4 TX) every 1000ms
+        if ((xTaskGetTickCount() - last_hb_tick) >= pdMS_TO_TICKS(1000)) {
+            last_hb_tick = xTaskGetTickCount();
+            hb_count++;
+
+            // Hardcoded heartbeat string for PD1 (HiveLink)
+            char hb_msg[96];
+            int hb_len = snprintf(hb_msg, sizeof(hb_msg),
+                                  "[STM32 HEARTBEAT #%lu] Hello from STM32H750 (PD1 TX)!\r\n",
+                                  hb_count);
+
+            HAL_StatusTypeDef status = Telemetry_UART_Send((const uint8_t *)hb_msg, (uint16_t)hb_len);
+
+            // Log heartbeat transmission status to USB CDC
+            char usb_log[128];
+            int ul_len = snprintf(usb_log, sizeof(usb_log),
+                                  "[TELEMETRY TX #%lu] -> PD1: %s (%s)\r\n",
+                                  hb_count,
+                                  status == HAL_OK ? "SENT" : "FAILED",
+                                  status == HAL_OK ? "OK" : "ERR");
+            CDC_Transmit_FS((uint8_t *)usb_log, (uint16_t)ul_len);
+        }
+
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
