@@ -30,6 +30,16 @@ bool Telemetry_UART_GetLatestPacket(char *out_buf, size_t max_len, uint32_t *age
 // Get total count of complete telemetry packets received
 uint32_t Telemetry_UART_GetRxCount(void);
 
+// Parsed Telemetry Data for up to 5 Access Points (AP1..AP5)
+typedef struct {
+    int16_t rssi[5];
+    int32_t ftm[5];
+    bool valid[5];
+} Telemetry_AP_Data_t;
+
+// Parse a raw telemetry string (e.g. "AP1-> RSSI: -43, FTM: 885 | AP2-> RSSI: -32, FTM: 675")
+void Telemetry_ParseAPs(const char *raw_str, Telemetry_AP_Data_t *out);
+
 // FreeRTOS Task function for Telemetry Bridge
 void Task_Telemetry_Bridge(void *pvParameters);
 

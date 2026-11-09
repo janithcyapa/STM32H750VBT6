@@ -39,5 +39,10 @@ bool SD_CSV_Logger_Stop(uint32_t *out_records);
  */
 bool SD_CSV_Logger_IsActive(void);
 
+/* --- USB File Transfer Interface Functions --- */
+bool SD_CSV_ListFiles(void);
+bool SD_CSV_DownloadFile(const char *filename);
+bool SD_CSV_DeleteFile(const char *filename);
+
 #endif // SD_CSV_LOGGER_H
 

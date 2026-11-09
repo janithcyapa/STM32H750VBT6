@@ -109,6 +109,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE m)
+target_link_options(${PROJECT_NAME} PRIVATE --specs=nano.specs -u _printf_float)
 
 # Post-build step to produce flashable artifacts and view memory usage
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

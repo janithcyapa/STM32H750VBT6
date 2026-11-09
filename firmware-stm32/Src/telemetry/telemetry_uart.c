@@ -198,6 +198,41 @@ uint32_t Telemetry_UART_GetRxCount(void) {
     return s_rx_packet_count;
 }
 
+void Telemetry_ParseAPs(const char *raw_str, Telemetry_AP_Data_t *out) {
+    if (!out) return;
+    for (int i = 0; i < 5; i++) {
+        out->rssi[i] = 0;
+        out->ftm[i] = 0;
+        out->valid[i] = false;
+    }
+    if (!raw_str || raw_str[0] == '\0') return;
+
+    // Scan for AP1..AP5 patterns: "AP<num>-> RSSI: <val>, FTM: <val>"
+    for (int ap = 1; ap <= 5; ap++) {
+        char ap_tag[8];
+        int tag_len = snprintf(ap_tag, sizeof(ap_tag), "AP%d", ap);
+        const char *p = strstr(raw_str, ap_tag);
+        if (p != NULL && (p[tag_len] < '0' || p[tag_len] > '9')) {
+            const char *pipe = strchr(p, '|');
+            const char *r_ptr = strstr(p, "RSSI:");
+            if (r_ptr && (!pipe || r_ptr < pipe)) {
+                int rssi_val = 0;
+                if (sscanf(r_ptr, "RSSI: %d", &rssi_val) == 1) {
+                    out->rssi[ap - 1] = (int16_t)rssi_val;
+                    out->valid[ap - 1] = true;
+                }
+            }
+            const char *f_ptr = strstr(p, "FTM:");
+            if (f_ptr && (!pipe || f_ptr < pipe)) {
+                long ftm_val = 0;
+                if (sscanf(f_ptr, "FTM: %ld", &ftm_val) == 1) {
+                    out->ftm[ap - 1] = (int32_t)ftm_val;
+                }
+            }
+        }
+    }
+}
+
 void Task_Telemetry_Bridge(void *pvParameters) {
     (void)pvParameters;
 

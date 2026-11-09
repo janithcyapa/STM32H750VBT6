@@ -1,5 +1,6 @@
 #include "sd_csv_logger.h"
 #include "ff.h"
+#include "usbd_cdc_if.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -68,8 +69,10 @@ bool SD_CSV_Logger_Start(char *out_filename, size_t filename_size, uint16_t *out
         return false;
     }
 
-    // 4. Write CSV header line
-    const char *header = "timestamp_ms,ax,ay,az,gx,gy,gz,mx,my,mz,temp_c,press_hpa,alt_m,telemetry\r\n";
+    // 4. Write CSV header line with dedicated AP1..AP5 RSSI and FTM columns
+    const char *header =
+        "timestamp_ms,ax,ay,az,gx,gy,gz,mx,my,mz,temp_c,press_hpa,alt_m,"
+        "ap1_rssi,ap1_ftm,ap2_rssi,ap2_ftm,ap3_rssi,ap3_ftm,ap4_rssi,ap4_ftm,ap5_rssi,ap5_ftm\r\n";
     UINT bw = 0;
     res = f_write(&s_logfile, header, (UINT)strlen(header), &bw);
     if (res != FR_OK || bw != (UINT)strlen(header)) {
@@ -141,3 +144,130 @@ bool SD_CSV_Logger_IsActive(void)
     return s_is_logging;
 }
 
+bool SD_CSV_ListFiles(void)
+{
+    if (s_is_logging) {
+        const char *busy = "[BUSY_RECORDING]\r\n";
+        CDC_Transmit_FS_Blocking((const uint8_t *)busy, (uint16_t)strlen(busy), 100);
+        return false;
+    }
+
+    FRESULT res = f_mount(&s_fatfs, "", 1);
+    if (res != FR_OK) {
+        const char *err = "[ERR_MOUNT_FAILED]\r\n";
+        CDC_Transmit_FS_Blocking((const uint8_t *)err, (uint16_t)strlen(err), 100);
+        return false;
+    }
+
+    FF_DIR dir;
+    res = f_opendir(&dir, "");
+    if (res != FR_OK) {
+        const char *err = "[ERR_OPEN_DIR]\r\n";
+        CDC_Transmit_FS_Blocking((const uint8_t *)err, (uint16_t)strlen(err), 100);
+        f_mount(NULL, "", 0);
+        return false;
+    }
+
+    const char *start = "[LIST_BEGIN]\r\n";
+    CDC_Transmit_FS_Blocking((const uint8_t *)start, (uint16_t)strlen(start), 100);
+
+    FILINFO fno;
+    char line[64];
+    while (f_readdir(&dir, &fno) == FR_OK && fno.fname[0] != 0) {
+        if (!(fno.fattrib & AM_DIR)) {
+            // Check for .CSV extension
+            char *dot = strrchr(fno.fname, '.');
+            if (dot && (strcasecmp(dot, ".CSV") == 0)) {
+                int n = snprintf(line, sizeof(line), "FILE:%s,%lu\r\n", fno.fname, (unsigned long)fno.fsize);
+                CDC_Transmit_FS_Blocking((const uint8_t *)line, (uint16_t)n, 100);
+            }
+        }
+    }
+
+    f_closedir(&dir);
+    f_mount(NULL, "", 0);
+
+    const char *end = "[LIST_END]\r\n";
+    CDC_Transmit_FS_Blocking((const uint8_t *)end, (uint16_t)strlen(end), 100);
+    return true;
+}
+
+bool SD_CSV_DownloadFile(const char *filename)
+{
+    if (s_is_logging) {
+        const char *busy = "[BUSY_RECORDING]\r\n";
+        CDC_Transmit_FS_Blocking((const uint8_t *)busy, (uint16_t)strlen(busy), 100);
+        return false;
+    }
+
+    if (!filename || filename[0] == '\0') {
+        const char *err = "[ERR_INVALID_NAME]\r\n";
+        CDC_Transmit_FS_Blocking((const uint8_t *)err, (uint16_t)strlen(err), 100);
+        return false;
+    }
+
+    FRESULT res = f_mount(&s_fatfs, "", 1);
+    if (res != FR_OK) {
+        const char *err = "[ERR_MOUNT_FAILED]\r\n";
+        CDC_Transmit_FS_Blocking((const uint8_t *)err, (uint16_t)strlen(err), 100);
+        return false;
+    }
+
+    FIL fil;
+    res = f_open(&fil, filename, FA_READ);
+    if (res != FR_OK) {
+        char err[64];
+        snprintf(err, sizeof(err), "[ERR_NOT_FOUND:%s]\r\n", filename);
+        CDC_Transmit_FS_Blocking((const uint8_t *)err, (uint16_t)strlen(err), 100);
+        f_mount(NULL, "", 0);
+        return false;
+    }
+
+    uint32_t fsize = (uint32_t)f_size(&fil);
+    char hdr[80];
+    int hlen = snprintf(hdr, sizeof(hdr), "[START_FILE:%s,%lu]\r\n", filename, (unsigned long)fsize);
+    CDC_Transmit_FS_Blocking((const uint8_t *)hdr, (uint16_t)hlen, 200);
+
+    uint8_t chunk[512];
+    UINT br = 0;
+    while (!f_eof(&fil)) {
+        res = f_read(&fil, chunk, sizeof(chunk), &br);
+        if (res != FR_OK || br == 0) {
+            break;
+        }
+        CDC_Transmit_FS_Blocking(chunk, (uint16_t)br, 500);
+    }
+
+    f_close(&fil);
+    f_mount(NULL, "", 0);
+
+    char foot[80];
+    int flen = snprintf(foot, sizeof(foot), "\r\n[END_FILE:%s]\r\n", filename);
+    CDC_Transmit_FS_Blocking((const uint8_t *)foot, (uint16_t)flen, 200);
+
+    return true;
+}
+
+bool SD_CSV_DeleteFile(const char *filename)
+{
+    if (s_is_logging) {
+        const char *busy = "[BUSY_RECORDING]\r\n";
+        CDC_Transmit_FS_Blocking((const uint8_t *)busy, (uint16_t)strlen(busy), 100);
+        return false;
+    }
+
+    FRESULT res = f_mount(&s_fatfs, "", 1);
+    if (res != FR_OK) return false;
+
+    res = f_unlink(filename);
+    f_mount(NULL, "", 0);
+
+    char resp[80];
+    if (res == FR_OK) {
+        snprintf(resp, sizeof(resp), "[OK_DELETED:%s]\r\n", filename);
+    } else {
+        snprintf(resp, sizeof(resp), "[ERR_DELETE:%s]\r\n", filename);
+    }
+    CDC_Transmit_FS_Blocking((const uint8_t *)resp, (uint16_t)strlen(resp), 100);
+    return (res == FR_OK);
+}

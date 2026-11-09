@@ -250,44 +250,100 @@ static void Task_Main_App(void *pvParameters) {
       // 3. Read Magnetometer (RAW X, Y, Z)
       QMC5883L_Read(&mag);
 
-      // 4. Retrieve latest Telemetry UART4 line
+      // 4. Retrieve and parse latest Telemetry UART4 line into AP1..AP5
       uint32_t age_ms = 0;
-      if (!Telemetry_UART_GetLatestPacket(telem_str, sizeof(telem_str), &age_ms)) {
-        strncpy(telem_str, "NO_DATA", sizeof(telem_str));
+      Telemetry_AP_Data_t ap_data = {0};
+      if (Telemetry_UART_GetLatestPacket(telem_str, sizeof(telem_str), &age_ms)) {
+        size_t tlen = strlen(telem_str);
+        while (tlen > 0 && (telem_str[tlen - 1] == '\r' || telem_str[tlen - 1] == '\n')) {
+          telem_str[--tlen] = '\0';
+        }
+        Telemetry_ParseAPs(telem_str, &ap_data);
+      } else {
+        strncpy(telem_str, "NO_DATA", sizeof(telem_str) - 1);
       }
-      // Strip trailing CR/LF from telemetry string if present
-      size_t tlen = strlen(telem_str);
-      while (tlen > 0 && (telem_str[tlen - 1] == '\r' || telem_str[tlen - 1] == '\n')) {
-        telem_str[--tlen] = '\0';
+
+      // Format human-readable AP summary for console logger
+      char ap_console[96] = {0};
+      int ap_len = 0;
+      for (int i = 0; i < 5; i++) {
+        if (ap_data.valid[i]) {
+          ap_len += snprintf(ap_console + ap_len, sizeof(ap_console) - ap_len,
+                             "AP%d:[R:%d F:%ld] ", i + 1, ap_data.rssi[i], (long)ap_data.ftm[i]);
+        }
+      }
+      if (ap_len == 0) {
+        strncpy(ap_console, "NO_AP", sizeof(ap_console) - 1);
       }
 
       // 5. Output ONE unified line per time step to USB CDC Logger
       int clen = snprintf(
           console_line, sizeof(console_line),
-          "[REC #%4lu] T:%6lu | A:[%6d %6d %6d] | G:[%5d %5d %5d] | M:[%6d %6d %6d] | B:[%4.1fC %7.2fhPa %5.1fm] | TEL: %s\r\n",
+          "[REC #%4lu] T:%6lu | A:[%6d %6d %6d] | G:[%5d %5d %5d] | M:[%6d %6d %6d] | B:[%4.1fC %7.2fhPa %5.1fm] | %s\r\n",
           (unsigned long)record_seq, (unsigned long)now_ms,
           accel.x, accel.y, accel.z,
           gyro.x, gyro.y, gyro.z,
           mag.x, mag.y, mag.z,
           baro.temperature_c, baro.pressure_hpa, baro.altitude_m,
-          telem_str);
+          ap_console);
       CDC_Transmit_FS((uint8_t *)console_line, (uint16_t)clen);
 
-      // 6. Write CSV record to SD Card File
+      // 6. Write CSV record with split AP1..AP5 RSSI & FTM columns to SD Card File
+      char ap_csv[10][16] = {{0}};
+      for (int i = 0; i < 5; i++) {
+        if (ap_data.valid[i]) {
+          snprintf(ap_csv[i * 2], sizeof(ap_csv[0]), "%d", ap_data.rssi[i]);
+          snprintf(ap_csv[i * 2 + 1], sizeof(ap_csv[0]), "%ld", (long)ap_data.ftm[i]);
+        }
+      }
+
       int rlen = snprintf(
           csv_line, sizeof(csv_line),
-          "%lu,%d,%d,%d,%d,%d,%d,%d,%d,%d,%.2f,%.2f,%.2f,\"%s\"\r\n",
+          "%lu,%d,%d,%d,%d,%d,%d,%d,%d,%d,%.2f,%.2f,%.2f,"
+          "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\r\n",
           (unsigned long)now_ms,
           accel.x, accel.y, accel.z,
           gyro.x, gyro.y, gyro.z,
           mag.x, mag.y, mag.z,
           baro.temperature_c, baro.pressure_hpa, baro.altitude_m,
-          telem_str);
+          ap_csv[0], ap_csv[1],
+          ap_csv[2], ap_csv[3],
+          ap_csv[4], ap_csv[5],
+          ap_csv[6], ap_csv[7],
+          ap_csv[8], ap_csv[9]);
       (void)rlen;
       SD_CSV_Logger_WriteRecord(csv_line);
 
     } else {
-      // Idle state: no streaming to console
+      // Idle state: handle USB File Transfer commands from Laptop / Python script
+      if (CDC_HasCommand()) {
+        char cmd[128];
+        if (CDC_GetCommand(cmd, sizeof(cmd))) {
+          char *p = cmd;
+          while (*p == ' ' || *p == '\t') p++;
+          size_t clen_cmd = strlen(p);
+          while (clen_cmd > 0 && (p[clen_cmd - 1] == ' ' || p[clen_cmd - 1] == '\r' || p[clen_cmd - 1] == '\n')) {
+            p[--clen_cmd] = '\0';
+          }
+
+          if (strcasecmp(p, "LIST") == 0) {
+            SD_CSV_ListFiles();
+          } else if (strncasecmp(p, "GET ", 4) == 0) {
+            const char *fname = p + 4;
+            while (*fname == ' ') fname++;
+            SD_CSV_DownloadFile(fname);
+          } else if (strncasecmp(p, "DEL ", 4) == 0) {
+            const char *fname = p + 4;
+            while (*fname == ' ') fname++;
+            SD_CSV_DeleteFile(fname);
+          } else if (strcasecmp(p, "STATUS") == 0) {
+            char smsg[64];
+            snprintf(smsg, sizeof(smsg), "[STATUS:IDLE,VERIFIED:%s]\r\n", all_ok ? "OK" : "ERR");
+            CDC_Transmit_FS_Blocking((const uint8_t *)smsg, (uint16_t)strlen(smsg), 100);
+          }
+        }
+      }
+
       if (!all_ok) {
         // Verification failed: keep LED blinking (toggle every 250ms)
         if ((HAL_GetTick() - err_blink_tick) >= 250) {
