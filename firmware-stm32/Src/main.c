@@ -181,25 +181,25 @@ static void Task_Sensors_Stream(void *pvParameters) {
     // Stream Formatted Output:
     // Line 1: IMU Accel & Gyro
     // Line 2: Barometer & Magnetometer
-    // if (baro_ready && mag_ready) {
-    //   len = snprintf(msg, sizeof(msg),
-    //                  "[IMU]  A:[%6d %6d %6d] | G:[%6d %6d %6d]\r\n"
-    //                  "[ENV]  Temp: %5.1f C | Press: %7.2f hPa | Alt: %6.1f m
-    //                  | Heading: %5.1f deg\r\n", accel.x, accel.y, accel.z,
-    //                  gyro.x, gyro.y, gyro.z,
-    //                  baro.temperature_c, baro.pressure_hpa, baro.altitude_m,
-    //                  mag.heading_deg);
-    // } else {
-    //   // Diagnostic output when sensors are not yet ready
-    //   len = snprintf(msg, sizeof(msg),
-    //                  "[IMU]  A:[%6d %6d %6d] | G:[%6d %6d %6d]\r\n"
-    //                  "[ENV]  Baro: %s (ID:0x%02X) | Mag: %s (ID:0x%02X)
-    //                  [Check PB8/SCL, PB9/SDA]\r\n", accel.x, accel.y,
-    //                  accel.z, gyro.x, gyro.y, gyro.z, baro_ready ? "OK" :
-    //                  "NOT DETECTED", BMP280_ReadChipID(), mag_ready ? "OK" :
-    //                  "NOT DETECTED", QMC5883L_ReadChipID());
-    // }
-    // CDC_Transmit_FS((uint8_t *)msg, len);
+    if (baro_ready && mag_ready) {
+      len = snprintf(msg, sizeof(msg),
+                     "[IMU]  A:[%6d %6d %6d] | G:[%6d %6d %6d]\r\n"
+                     "[ENV]  Temp: %5.1f C | Press: %7.2f hPa | Alt: %6.1f m | Heading: %5.1f deg\r\n",
+                     accel.x, accel.y, accel.z,
+                     gyro.x, gyro.y, gyro.z,
+                     baro.temperature_c, baro.pressure_hpa, baro.altitude_m,
+                     mag.heading_deg);
+    } else {
+      // Diagnostic output when sensors are not yet ready
+      len = snprintf(msg, sizeof(msg),
+                     "[IMU]  A:[%6d %6d %6d] | G:[%6d %6d %6d]\r\n"
+                     "[ENV]  Baro: %s (ID:0x%02X) | Mag: %s (ID:0x%02X) [Check PB8/SCL, PB9/SDA]\r\n",
+                     accel.x, accel.y, accel.z,
+                     gyro.x, gyro.y, gyro.z,
+                     baro_ready ? "OK" : "NOT DETECTED", BMP280_ReadChipID(),
+                     mag_ready ? "OK" : "NOT DETECTED", QMC5883L_ReadChipID());
+    }
+    CDC_Transmit_FS((uint8_t *)msg, len);
 
     // Stream at 10 Hz (every 100ms)
     vTaskDelay(pdMS_TO_TICKS(100));
@@ -208,13 +208,6 @@ static void Task_Sensors_Stream(void *pvParameters) {
 
 int main(void) {
   HAL_Init();
-
-  // 1. Configure Power Supply to LDO mode and VOS1 (Required to exit Run* mode
-  // & unlock PLL/USB)
-  HAL_PWREx_ConfigSupply(PWR_LDO_SUPPLY);
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
-  while (!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY))
-    ;
 
   BSP_LED_Init();
   BSP_Buttons_Init();

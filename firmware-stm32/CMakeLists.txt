@@ -21,7 +21,6 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/files.cmake)
 target_compile_definitions(${PROJECT_NAME} PRIVATE
   STM32H750xx
   USE_HAL_DRIVER
-  USE_PWR_LDO_SUPPLY
 )
 
 # Modern target-scoped includes
