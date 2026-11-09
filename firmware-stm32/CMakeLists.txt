@@ -21,6 +21,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/files.cmake)
 target_compile_definitions(${PROJECT_NAME} PRIVATE
   STM32H750xx
   USE_HAL_DRIVER
+  USE_PWR_LDO_SUPPLY
 )
 
 # Modern target-scoped includes
@@ -48,6 +49,7 @@ target_sources(${PROJECT_NAME} PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/Src/core/system_stm32h7xx.c
   ${CMAKE_CURRENT_SOURCE_DIR}/Src/bsp/bsp_board.c
   ${CMAKE_CURRENT_SOURCE_DIR}/Src/bsp/bsp_qspi.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Src/bsp/bsp_sdcard.c
   ${CMAKE_CURRENT_SOURCE_DIR}/Src/sensors/bmi160.c
   ${CMAKE_CURRENT_SOURCE_DIR}/Src/sensors/i2c_bus.c
   ${CMAKE_CURRENT_SOURCE_DIR}/Src/sensors/bmp280.c
@@ -70,6 +72,8 @@ target_sources(${PROJECT_NAME} PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_uart_ex.c
   ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma.c
   ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_dma_ex.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_hal_sd.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/STM32H7xx_HAL_Driver/Src/stm32h7xx_ll_sdmmc.c
   # FreeRTOS Core Sources
   ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/FreeRTOS-Kernel/tasks.c
   ${CMAKE_CURRENT_SOURCE_DIR}/Middlewares/FreeRTOS-Kernel/queue.c
