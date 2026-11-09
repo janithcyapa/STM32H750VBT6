@@ -7,6 +7,7 @@
 #include "qmc5883l.h"
 #include "usb_device.h"
 #include "usbd_cdc_if.h"
+#include "telemetry_uart.h"
 #include <stdio.h>
 
 extern void xPortSysTickHandler(void);
@@ -19,7 +20,7 @@ void SysTick_Handler(void) {
 
 static void Task_Sensors_Stream(void *pvParameters) {
   (void)pvParameters;
-  char msg[384];
+  char msg[512];
 
   BMI160_RawData_t accel = {0};
   BMI160_RawData_t gyro = {0};
@@ -61,18 +62,21 @@ static void Task_Sensors_Stream(void *pvParameters) {
   mag_ready = QMC5883L_Init();
   uint8_t mag_id = QMC5883L_ReadChipID();
 
-  // Print Sensor Status Summary
+  // Print Sensor & Telemetry Status Summary
   len = snprintf(msg, sizeof(msg),
-                 "\r\n--- Sensor Initialization Status ---\r\n"
+                 "\r\n--- Initialization Status ---\r\n"
                  "[1] BMI160 IMU  (SPI1): %s (ID: 0x%02X, HAL: %u)\r\n"
                  "[2] BMP280 Baro (I2C1): %s (ID: 0x%02X, Match 0x58)\r\n"
                  "[3] QMC5883 Mag (I2C1): %s (ID: 0x%02X, Addr 0x0D)\r\n"
-                 "------------------------------------\r\n"
+                 "[4] TELEMETRY   (UART4): %s (PD1:TX, PD0:RX @ 115200)\r\n"
+                 "-----------------------------\r\n"
+                 "Telemetry Bridge Active: Any UART4 RX will bridge to USB with flag [TELEMETRY RX]\r\n"
                  "Press Button K1 (PE3) at any time to re-scan I2C!\r\n"
                  "Starting live stream (10 Hz)...\r\n\r\n",
                  imu_ready ? "ONLINE" : "FAILED", imu_id, imu_hal,
                  baro_ready ? "ONLINE" : "FAILED", baro_id,
-                 mag_ready ? "ONLINE" : "FAILED", mag_id);
+                 mag_ready ? "ONLINE" : "FAILED", mag_id,
+                 Telemetry_UART_IsReady() ? "ONLINE" : "FAILED");
   CDC_Transmit_FS((uint8_t *)msg, len);
   vTaskDelay(pdMS_TO_TICKS(100));
 
@@ -145,12 +149,16 @@ int main(void) {
   BSP_LED_Init();
   BSP_Buttons_Init();
 
+  // Initialize Telemetry UART (UART4 on PD1 TX, PD0 RX at 115200 baud)
+  Telemetry_UART_Init(115200);
+
   // Initialize Native USB CDC Virtual COM Port
   MX_USB_DEVICE_Init();
 
-  // Create FreeRTOS sensor streaming task
+  // Create FreeRTOS tasks
   HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
   xTaskCreate(Task_Sensors_Stream, "SensorTask", 768, NULL, 2, NULL);
+  xTaskCreate(Task_Telemetry_Bridge, "TelemBridge", 512, NULL, 2, NULL);
   vTaskStartScheduler();
 
   while (1) {
